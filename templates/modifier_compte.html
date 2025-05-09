@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Modifier mon compte</title>
+</head>
+<body>
+    <h1>Modifier mon compte</h1>
+    <form method="POST">
+        <div>
+            <label for="nom">Nouveau nom :</label>
+            <input type="text" id="nom" name="nom" value="{{ utilisateur.nom }}" required>
+        </div>
+        <button type="submit">Enregistrer les modifications</button>
+    </form>
+    <div>
+        <a href="{{ url_for('accueil') }}">Retour à l'accueil</a>
+    </div>
+</body>
+</html> 

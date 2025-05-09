@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Liste des utilisateurs</title>
+</head>
+<body>
+    <h1>Liste des utilisateurs</h1>
+    {% if utilisateurs %}
+        <ul>
+        {% for utilisateur in utilisateurs %}
+            <li>
+                {{ utilisateur.nom }}
+                <small>({{ utilisateur.mots|length }} mots ajoutés)</small>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Aucun utilisateur n'a encore été créé.</p>
+    {% endif %}
+    <div>
+        <a href="{{ url_for('accueil') }}">Retour à l'accueil</a>
+    </div>
+</body>
+</html> 

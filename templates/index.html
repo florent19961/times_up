@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Times Up - Accueil</title>
+</head>
+<body>
+    <h1>Bienvenue sur Times Up</h1>
+    {% if utilisateur %}
+        <h2>Bonjour {{ utilisateur.nom }}!</h2>
+        <a href="{{ url_for('ajout_mot') }}"><button>Continuer à ajouter des mots</button></a>
+        <a href="{{ url_for('modifier_compte') }}"><button>Modifier mon compte</button></a>
+        <a href="{{ url_for('deconnexion') }}"><button>Changer d'utilisateur</button></a>
+    {% else %}
+        <a href="{{ url_for('pseudo') }}"><button>Commencer à jouer</button></a>
+    {% endif %}
+    <div>
+        <a href="{{ url_for('liste_utilisateurs') }}"><button>Voir tous les utilisateurs</button></a>
+    </div>
+</body>
+</html>
