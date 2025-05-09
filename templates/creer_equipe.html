@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Créer une équipe</title>
+</head>
+<body>
+    <h1>Créer une équipe</h1>
+    
+    {% if erreur %}
+        <div style="color: red;">
+            <p>{{ erreur }}</p>
+        </div>
+    {% endif %}
+
+    <form method="POST">
+        <div>
+            <label for="nom">Nom de l'équipe :</label>
+            <input type="text" id="nom" name="nom" required>
+        </div>
+        <button type="submit">Créer l'équipe</button>
+    </form>
+
+    <div>
+        <a href="{{ url_for('accueil') }}">Retour à l'accueil</a>
+    </div>
+</body>
+</html> 

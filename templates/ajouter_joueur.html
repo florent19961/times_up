@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajouter un joueur</title>
+</head>
+<body>
+    <h1>Ajouter un joueur à {{ equipe.nom }}</h1>
+
+    <form method="POST">
+        <div>
+            <label for="nom">Nom du joueur :</label>
+            <input type="text" id="nom" name="nom" required>
+        </div>
+        <button type="submit">Ajouter le joueur</button>
+    </form>
+
+    <div>
+        <a href="{{ url_for('voir_equipe', equipe_id=equipe.id) }}">Retour à l'équipe</a>
+    </div>
+</body>
+</html> 
