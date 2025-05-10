@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Paramètres de la partie{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="/" class="back-button" title="Retour à l'accueil">
+        <span class="back-arrow">←</span>
+    </a>
+
+    <h1 class="game-title">Paramètres de la partie</h1>
+    
+    <div class="config-form">
+        <div class="config-item">
+            <label for="nb-equipes">Nombre d'équipes <span class="limits">(2-5)</span></label>
+            <div class="number-input">
+                <button class="number-btn minus" onclick="decrementValue('nb-equipes')">−</button>
+                <input type="number" id="nb-equipes" name="nb-equipes" min="2" max="5" value="2">
+                <button class="number-btn plus" onclick="incrementValue('nb-equipes')">+</button>
+            </div>
+        </div>
+
+        <div class="config-item">
+            <label for="nb-mots">Nombre de mots par joueur <span class="limits">(max 10)</span></label>
+            <div class="number-input">
+                <button class="number-btn minus" onclick="decrementValue('nb-mots')">−</button>
+                <input type="number" id="nb-mots" name="nb-mots" min="1" max="10" value="4">
+                <button class="number-btn plus" onclick="incrementValue('nb-mots')">+</button>
+            </div>
+        </div>
+
+        <div class="config-item">
+            <label>Choix des mots</label>
+            <div class="choice-buttons">
+                <button class="choice-btn" id="aleatoire" onclick="selectChoice('aleatoire')">Aléatoire</button>
+                <button class="choice-btn" id="personnalise" onclick="selectChoice('personnalise')">Personnalisé</button>
+            </div>
+        </div>
+
+        <button class="game-button start-button" onclick="demarrerPartie()">
+            Démarrer la partie
+        </button>
+    </div>
+</div>
+
+<script>
+let selectedChoice = 'aleatoire'; // Valeur par défaut
+
+function selectChoice(choice) {
+    selectedChoice = choice;
+    document.querySelectorAll('.choice-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    document.getElementById(choice).classList.add('selected');
+}
+
+function incrementValue(inputId) {
+    const input = document.getElementById(inputId);
+    const max = parseInt(input.getAttribute('max'));
+    const currentValue = parseInt(input.value);
+    if (currentValue < max) {
+        input.value = currentValue + 1;
+    }
+}
+
+function decrementValue(inputId) {
+    const input = document.getElementById(inputId);
+    const min = parseInt(input.getAttribute('min'));
+    const currentValue = parseInt(input.value);
+    if (currentValue > min) {
+        input.value = currentValue - 1;
+    }
+}
+
+function validateInput(input) {
+    const min = parseInt(input.getAttribute('min'));
+    const max = parseInt(input.getAttribute('max'));
+    let value = parseInt(input.value);
+    
+    if (isNaN(value)) {
+        value = min;
+    } else if (value < min) {
+        value = min;
+    } else if (value > max) {
+        value = max;
+    }
+    
+    input.value = value;
+}
+
+function demarrerPartie() {
+    const nbEquipes = document.getElementById('nb-equipes').value;
+    const nbMots = document.getElementById('nb-mots').value;
+    console.log(`Démarrage de la partie avec ${nbEquipes} équipes, ${nbMots} mots par joueur et choix ${selectedChoice}`);
+}
+
+// Initialiser le bouton sélectionné par défaut
+document.addEventListener('DOMContentLoaded', function() {
+    selectChoice('aleatoire');
+    
+    // Ajouter les validateurs pour les inputs
+    document.getElementById('nb-equipes').addEventListener('change', function() {
+        validateInput(this);
+    });
+    document.getElementById('nb-mots').addEventListener('change', function() {
+        validateInput(this);
+    });
+});
+</script>
+{% endblock %}
