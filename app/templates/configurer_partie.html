@@ -72,8 +72,7 @@
             <div class="modal-item">
                 <label for="nb-mots-total">Nombre de mots total <span class="limits">(20-80)</span></label>
                 <div class="slider-container">
-                    <input type="range" id="nb-mots-total" name="nb-mots-total" min="20" max="80" step="5" value="40" class="slider">
-                    <div class="slider-value" id="nb-mots-value">40</div>
+                    <input type="range" id="nb-mots-total" name="nb-mots-total" min="20" max="80" value="40" class="slider">
                 </div>
             </div>
 
@@ -81,8 +80,7 @@
             <div class="modal-item">
                 <label for="duree-manche">Durée manche <span class="limits">(20-60 secondes)</span></label>
                 <div class="slider-container">
-                    <input type="range" id="duree-manche" name="duree-manche" min="20" max="60" step="5" value="30" class="slider">
-                    <div class="slider-value" id="duree-value">30</div>
+                    <input type="range" id="duree-manche" name="duree-manche" min="20" max="60" value="30" class="slider">
                 </div>
             </div>
 
@@ -141,11 +139,36 @@ function selectReserveChoice(choice) {
 
 function updateSliderValue(sliderId, valueId, settingKey) {
     const slider = document.getElementById(sliderId);
-    const value = document.getElementById(valueId);
-    slider.oninput = function() {
-        value.textContent = this.value;
-        advancedSettings[settingKey] = parseInt(this.value);
+    const sliderContainer = slider.parentElement;
+    
+    // Créer l'élément qui affichera la valeur
+    const valueDisplay = document.createElement('div');
+    valueDisplay.className = 'slider-value';
+    sliderContainer.appendChild(valueDisplay);
+    
+    function updatePosition() {
+        const rect = slider.getBoundingClientRect();
+        const containerRect = sliderContainer.getBoundingClientRect();
+        const percent = (slider.value - slider.min) / (slider.max - slider.min);
+        const sliderWidth = rect.width;
+        const thumbPosition = percent * (sliderWidth - 14) + 7;
+        const containerLeft = containerRect.left;
+        const sliderLeft = rect.left;
+        const offset = sliderLeft - containerLeft;
+        const position = thumbPosition + offset;
+        
+        valueDisplay.style.left = position + 'px';
+        valueDisplay.textContent = slider.value;
+        advancedSettings[settingKey] = parseInt(slider.value);
     }
+    
+    slider.oninput = updatePosition;
+    
+    // Initialiser la position immédiatement
+    updatePosition();
+    
+    // Mettre à jour aussi lors du redimensionnement
+    window.addEventListener('resize', updatePosition);
 }
 
 function incrementValue(inputId) {
@@ -279,8 +302,8 @@ document.addEventListener('DOMContentLoaded', function() {
     selectReserveChoice('oui');
     
     // Initialiser les sliders
-    updateSliderValue('nb-mots-total', 'nb-mots-value', 'nbMotsTotal');
-    updateSliderValue('duree-manche', 'duree-value', 'dureeManche');
+    updateSliderValue('nb-mots-total', null, 'nbMotsTotal');
+    updateSliderValue('duree-manche', null, 'dureeManche');
     
     // Initialiser le nombre minimum de joueurs
     updateMinPlayers();
