@@ -146,7 +146,7 @@ function updateSliderValue(sliderId, valueId, settingKey) {
     valueDisplay.className = 'slider-value';
     sliderContainer.appendChild(valueDisplay);
     
-    function updatePosition() {
+    function updatePosition(isInitial = false) {
         const rect = slider.getBoundingClientRect();
         const containerRect = sliderContainer.getBoundingClientRect();
         const percent = (slider.value - slider.min) / (slider.max - slider.min);
@@ -155,20 +155,38 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         const containerLeft = containerRect.left;
         const sliderLeft = rect.left;
         const offset = sliderLeft - containerLeft;
-        const position = thumbPosition + offset;
+        // Ajuster le décalage en fonction du slider
+        const initialOffset = isInitial ? (sliderId === 'duree-manche' ? 5 : 3) : 0;
+        const position = thumbPosition + offset + initialOffset;
         
         valueDisplay.style.left = position + 'px';
         valueDisplay.textContent = slider.value;
         advancedSettings[settingKey] = parseInt(slider.value);
     }
     
-    slider.oninput = updatePosition;
+    slider.oninput = () => updatePosition(false);
     
-    // Initialiser la position immédiatement
-    updatePosition();
+    // Attendre que le modal soit ouvert avant d'initialiser la position
+    if (sliderId === 'duree-manche' || sliderId === 'nb-mots-total') {
+        const modal = document.getElementById('advanced-settings-modal');
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'style' && modal.style.display === 'flex') {
+                    // Le modal est ouvert, on peut initialiser la position
+                    setTimeout(() => updatePosition(true), 0);
+                    observer.disconnect();
+                }
+            });
+        });
+        
+        observer.observe(modal, { attributes: true });
+    } else {
+        // Pour les autres sliders, initialiser normalement
+        updatePosition(true);
+    }
     
     // Mettre à jour aussi lors du redimensionnement
-    window.addEventListener('resize', updatePosition);
+    window.addEventListener('resize', () => updatePosition(false));
 }
 
 function incrementValue(inputId) {
