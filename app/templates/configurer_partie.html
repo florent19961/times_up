@@ -72,7 +72,7 @@
             <div class="modal-item">
                 <label for="nb-mots-total">Nombre de mots total <span class="limits">(20-80)</span></label>
                 <div class="slider-container">
-                    <input type="range" id="nb-mots-total" name="nb-mots-total" min="20" max="80" value="40" class="slider">
+                    <input type="range" id="nb-mots-total" name="nb-mots-total" min="20" max="80" value="50" class="slider">
                 </div>
             </div>
 
@@ -105,10 +105,19 @@
 let selectedChoice = 'aleatoire'; // Valeur par défaut
 let advancedSettings = {
     choixEquipe: 'personnalise',
-    nbMotsTotal: 40,
+    nbMotsTotal: 50,
     dureeManche: 30,
     motReserve: 'oui'
 };
+
+// Paramètres temporaires pour le modal
+let tempSettings = {};
+
+// Charger les paramètres sauvegardés au démarrage
+const savedSettings = localStorage.getItem('advancedSettings');
+if (savedSettings) {
+    advancedSettings = JSON.parse(savedSettings);
+}
 
 function selectChoice(choice) {
     selectedChoice = choice;
@@ -120,7 +129,7 @@ function selectChoice(choice) {
 }
 
 function selectTeamChoice(choice) {
-    advancedSettings.choixEquipe = choice;
+    tempSettings.choixEquipe = choice;
     document.querySelectorAll('#equipe-aleatoire, #equipe-personnalise').forEach(btn => {
         btn.classList.remove('selected');
     });
@@ -129,7 +138,7 @@ function selectTeamChoice(choice) {
 }
 
 function selectReserveChoice(choice) {
-    advancedSettings.motReserve = choice;
+    tempSettings.motReserve = choice;
     document.querySelectorAll('#reserve-oui, #reserve-non').forEach(btn => {
         btn.classList.remove('selected');
     });
@@ -146,12 +155,6 @@ function updateSliderValue(sliderId, valueId, settingKey) {
     valueDisplay.className = 'slider-value';
     sliderContainer.appendChild(valueDisplay);
     
-    // Définir la valeur initiale à 30 pour le slider de durée
-    if (sliderId === 'duree-manche') {
-        slider.value = 30;
-        advancedSettings.dureeManche = 30;
-    }
-    
     function updatePosition(isInitial = false) {
         const rect = slider.getBoundingClientRect();
         const containerRect = sliderContainer.getBoundingClientRect();
@@ -161,12 +164,11 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         const containerLeft = containerRect.left;
         const sliderLeft = rect.left;
         const offset = sliderLeft - containerLeft;
-        const initialOffset = isInitial ? (sliderId === 'duree-manche' ? 5 : 3) : 0;
-        const position = thumbPosition + offset + initialOffset;
+        const position = thumbPosition + offset;
         
         valueDisplay.style.left = position + 'px';
         valueDisplay.textContent = slider.value;
-        advancedSettings[settingKey] = parseInt(slider.value);
+        tempSettings[settingKey] = parseInt(slider.value);
     }
     
     slider.oninput = () => updatePosition(false);
@@ -177,7 +179,8 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.attributeName === 'style' && modal.style.display === 'flex') {
-                    setTimeout(() => updatePosition(true), 0);
+                    // Utiliser le même mécanisme que pour le dynamique
+                    slider.dispatchEvent(new Event('input'));
                     observer.disconnect();
                 }
             });
@@ -252,8 +255,51 @@ function updateDefaultMotsTotal() {
     advancedSettings.nbMotsTotal = totalMots;
 }
 
+function openModal() {
+    // Copier les paramètres actuels dans les paramètres temporaires
+    tempSettings = JSON.parse(JSON.stringify(advancedSettings));
+    
+    // Mettre à jour l'interface avec les paramètres temporaires
+    const dureeSlider = document.getElementById('duree-manche');
+    dureeSlider.value = tempSettings.dureeManche;
+    
+    const motsSlider = document.getElementById('nb-mots-total');
+    motsSlider.value = tempSettings.nbMotsTotal;
+    
+    selectTeamChoice(tempSettings.choixEquipe);
+    selectReserveChoice(tempSettings.motReserve);
+    
+    document.getElementById('advanced-settings-modal').style.display = 'flex';
+    
+    // Mettre à jour la position des chiffres des sliders
+    const modal = document.getElementById('advanced-settings-modal');
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.attributeName === 'style' && modal.style.display === 'flex') {
+                // Mettre à jour la position des chiffres pour les deux sliders
+                const dureeSlider = document.getElementById('duree-manche');
+                const motsSlider = document.getElementById('nb-mots-total');
+                
+                // Forcer une mise à jour de la position pour chaque slider
+                dureeSlider.dispatchEvent(new Event('input'));
+                motsSlider.dispatchEvent(new Event('input'));
+                
+                observer.disconnect();
+            }
+        });
+    });
+    
+    observer.observe(modal, { attributes: true });
+}
+
+function closeModal() {
+    // Ne rien sauvegarder lors de la fermeture
+    document.getElementById('advanced-settings-modal').style.display = 'none';
+}
+
 function saveAdvancedSettings() {
-    // Sauvegarder les paramètres dans le localStorage
+    // Sauvegarder les paramètres temporaires dans les paramètres permanents
+    advancedSettings = JSON.parse(JSON.stringify(tempSettings));
     localStorage.setItem('advancedSettings', JSON.stringify(advancedSettings));
     closeModal();
 }
@@ -296,15 +342,6 @@ function validateInput(input) {
     if (input.id === 'nb-joueurs') {
         updateDefaultMotsTotal();
     }
-}
-
-// Fonctions pour le modal
-function openModal() {
-    document.getElementById('advanced-settings-modal').style.display = 'flex';
-}
-
-function closeModal() {
-    document.getElementById('advanced-settings-modal').style.display = 'none';
 }
 
 // Fermer le modal si on clique en dehors
