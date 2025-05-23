@@ -8,7 +8,15 @@
         <span class="back-arrow">←</span>
     </a>
 
-    <h1 class="game-title">Paramètres de la partie</h1>
+    <div class="header-container">
+        <h1 class="game-title">Paramètres de la partie</h1>
+        <button type="button" class="settings-button" onclick="openModal()" title="Options supplémentaires">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+    </div>
     
     <form id="config-form" class="config-form" method="POST" action="{{ url_for('main.configurer_partie') }}">
         <div class="config-item">
@@ -21,11 +29,11 @@
         </div>
 
         <div class="config-item">
-            <label for="nb-mots">Nombre de mots par joueur <span class="limits">(max 10)</span></label>
+            <label for="nb-joueurs">Nombre de joueurs <span class="limits">(min: <span id="min-joueurs">4</span>, max: 20)</span></label>
             <div class="number-input">
-                <button type="button" class="number-btn minus" onclick="decrementValue('nb-mots')">−</button>
-                <input type="number" id="nb-mots" name="nb-mots" min="1" max="10" value="4">
-                <button type="button" class="number-btn plus" onclick="incrementValue('nb-mots')">+</button>
+                <button type="button" class="number-btn minus" onclick="decrementValue('nb-joueurs')">−</button>
+                <input type="number" id="nb-joueurs" name="nb-joueurs" min="4" max="20" value="4">
+                <button type="button" class="number-btn plus" onclick="incrementValue('nb-joueurs')">+</button>
             </div>
         </div>
 
@@ -44,8 +52,65 @@
     </form>
 </div>
 
+<!-- Modal pour les paramètres avancés -->
+<div id="advanced-settings-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button" onclick="closeModal()">&times;</span>
+        <h2 class="modal-title">Options supplémentaires</h2>
+        <div class="modal-body">
+            <!-- Choix équipe -->
+            <div class="modal-item">
+                <label>Choix équipe</label>
+                <div class="choice-buttons">
+                    <button type="button" class="choice-btn" id="equipe-aleatoire" onclick="selectTeamChoice('aleatoire')">Aléatoire</button>
+                    <button type="button" class="choice-btn" id="equipe-personnalise" onclick="selectTeamChoice('personnalise')">Personnalisé</button>
+                </div>
+                <input type="hidden" id="choix-equipe" name="choix-equipe" value="personnalise">
+            </div>
+
+            <!-- Nombre de mots total -->
+            <div class="modal-item">
+                <label for="nb-mots-total">Nombre de mots total <span class="limits">(20-80)</span></label>
+                <div class="slider-container">
+                    <input type="range" id="nb-mots-total" name="nb-mots-total" min="20" max="80" step="5" value="40" class="slider">
+                    <div class="slider-value" id="nb-mots-value">40</div>
+                </div>
+            </div>
+
+            <!-- Durée manche -->
+            <div class="modal-item">
+                <label for="duree-manche">Durée manche <span class="limits">(20-60 secondes)</span></label>
+                <div class="slider-container">
+                    <input type="range" id="duree-manche" name="duree-manche" min="20" max="60" step="5" value="30" class="slider">
+                    <div class="slider-value" id="duree-value">30</div>
+                </div>
+            </div>
+
+            <!-- Mot en réserve -->
+            <div class="modal-item">
+                <label>Autorisation d'un mot en réserve</label>
+                <div class="choice-buttons">
+                    <button type="button" class="choice-btn" id="reserve-oui" onclick="selectReserveChoice('oui')">Oui</button>
+                    <button type="button" class="choice-btn" id="reserve-non" onclick="selectReserveChoice('non')">Non</button>
+                </div>
+                <input type="hidden" id="choix-reserve" name="choix-reserve" value="oui">
+            </div>
+
+            <button type="button" class="game-button save-button" onclick="saveAdvancedSettings()">
+                Enregistrer
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 let selectedChoice = 'aleatoire'; // Valeur par défaut
+let advancedSettings = {
+    choixEquipe: 'personnalise',
+    nbMotsTotal: 40,
+    dureeManche: 30,
+    motReserve: 'oui'
+};
 
 function selectChoice(choice) {
     selectedChoice = choice;
@@ -56,12 +121,43 @@ function selectChoice(choice) {
     document.getElementById('choix-mots').value = choice;
 }
 
+function selectTeamChoice(choice) {
+    advancedSettings.choixEquipe = choice;
+    document.querySelectorAll('#equipe-aleatoire, #equipe-personnalise').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    document.getElementById('equipe-' + choice).classList.add('selected');
+    document.getElementById('choix-equipe').value = choice;
+}
+
+function selectReserveChoice(choice) {
+    advancedSettings.motReserve = choice;
+    document.querySelectorAll('#reserve-oui, #reserve-non').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    document.getElementById('reserve-' + choice).classList.add('selected');
+    document.getElementById('choix-reserve').value = choice;
+}
+
+function updateSliderValue(sliderId, valueId, settingKey) {
+    const slider = document.getElementById(sliderId);
+    const value = document.getElementById(valueId);
+    slider.oninput = function() {
+        value.textContent = this.value;
+        advancedSettings[settingKey] = parseInt(this.value);
+    }
+}
+
 function incrementValue(inputId) {
     const input = document.getElementById(inputId);
     const max = parseInt(input.getAttribute('max'));
     const currentValue = parseInt(input.value);
     if (currentValue < max) {
         input.value = currentValue + 1;
+        if (inputId === 'nb-equipes') {
+            updateMinPlayers();
+            updateDefaultMotsTotal();
+        }
     }
 }
 
@@ -71,6 +167,70 @@ function decrementValue(inputId) {
     const currentValue = parseInt(input.value);
     if (currentValue > min) {
         input.value = currentValue - 1;
+        if (inputId === 'nb-equipes') {
+            updateMinPlayers();
+            updateDefaultMotsTotal();
+        }
+    }
+}
+
+function updateMinPlayers() {
+    const nbEquipes = parseInt(document.getElementById('nb-equipes').value);
+    const minJoueurs = nbEquipes * 2;
+    document.getElementById('min-joueurs').textContent = minJoueurs;
+    
+    // Mettre à jour l'attribut min du champ nombre de joueurs
+    const nbJoueursInput = document.getElementById('nb-joueurs');
+    nbJoueursInput.min = minJoueurs;
+    
+    // Ajuster le nombre de joueurs si nécessaire
+    const nbJoueurs = parseInt(nbJoueursInput.value);
+    if (nbJoueurs < minJoueurs) {
+        nbJoueursInput.value = minJoueurs;
+        updateDefaultMotsTotal();
+    }
+}
+
+function updateDefaultMotsTotal() {
+    const nbJoueurs = parseInt(document.getElementById('nb-joueurs').value);
+    const motsParJoueur = 6;
+    let totalMots = nbJoueurs * motsParJoueur;
+    
+    // Arrondir au multiple de 5 supérieur
+    totalMots = Math.ceil(totalMots / 5) * 5;
+    
+    // Limiter à 80
+    totalMots = Math.min(totalMots, 80);
+    
+    // Mettre à jour le slider et la valeur
+    const slider = document.getElementById('nb-mots-total');
+    slider.value = totalMots;
+    document.getElementById('nb-mots-value').textContent = totalMots;
+    advancedSettings.nbMotsTotal = totalMots;
+}
+
+function saveAdvancedSettings() {
+    // Sauvegarder les paramètres dans le localStorage
+    localStorage.setItem('advancedSettings', JSON.stringify(advancedSettings));
+    closeModal();
+}
+
+function loadAdvancedSettings() {
+    const savedSettings = localStorage.getItem('advancedSettings');
+    if (savedSettings) {
+        advancedSettings = JSON.parse(savedSettings);
+        
+        // Mettre à jour l'interface avec les paramètres sauvegardés
+        selectTeamChoice(advancedSettings.choixEquipe);
+        selectReserveChoice(advancedSettings.motReserve);
+        
+        const motsSlider = document.getElementById('nb-mots-total');
+        motsSlider.value = advancedSettings.nbMotsTotal;
+        document.getElementById('nb-mots-value').textContent = advancedSettings.nbMotsTotal;
+        
+        const dureeSlider = document.getElementById('duree-manche');
+        dureeSlider.value = advancedSettings.dureeManche;
+        document.getElementById('duree-value').textContent = advancedSettings.dureeManche;
     }
 }
 
@@ -88,18 +248,57 @@ function validateInput(input) {
     }
     
     input.value = value;
+    
+    // Si c'est le nombre de joueurs qui change, mettre à jour le nombre de mots total
+    if (input.id === 'nb-joueurs') {
+        updateDefaultMotsTotal();
+    }
 }
 
-// Initialiser le bouton sélectionné par défaut
+// Fonctions pour le modal
+function openModal() {
+    document.getElementById('advanced-settings-modal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('advanced-settings-modal').style.display = 'none';
+}
+
+// Fermer le modal si on clique en dehors
+window.onclick = function(event) {
+    const modal = document.getElementById('advanced-settings-modal');
+    if (event.target == modal) {
+        closeModal();
+    }
+}
+
+// Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     selectChoice('aleatoire');
+    selectTeamChoice('personnalise');
+    selectReserveChoice('oui');
+    
+    // Initialiser les sliders
+    updateSliderValue('nb-mots-total', 'nb-mots-value', 'nbMotsTotal');
+    updateSliderValue('duree-manche', 'duree-value', 'dureeManche');
+    
+    // Initialiser le nombre minimum de joueurs
+    updateMinPlayers();
+    updateDefaultMotsTotal();
+    
+    // Charger les paramètres sauvegardés
+    loadAdvancedSettings();
     
     // Ajouter les validateurs pour les inputs
     document.getElementById('nb-equipes').addEventListener('change', function() {
         validateInput(this);
+        updateMinPlayers();
+        updateDefaultMotsTotal();
     });
-    document.getElementById('nb-mots').addEventListener('change', function() {
+    
+    document.getElementById('nb-joueurs').addEventListener('change', function() {
         validateInput(this);
+        updateDefaultMotsTotal();
     });
 });
 </script>
