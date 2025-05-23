@@ -10,37 +10,38 @@
 
     <h1 class="game-title">Paramètres de la partie</h1>
     
-    <div class="config-form">
+    <form id="config-form" class="config-form" method="POST" action="{{ url_for('main.configurer_partie') }}">
         <div class="config-item">
             <label for="nb-equipes">Nombre d'équipes <span class="limits">(2-5)</span></label>
             <div class="number-input">
-                <button class="number-btn minus" onclick="decrementValue('nb-equipes')">−</button>
+                <button type="button" class="number-btn minus" onclick="decrementValue('nb-equipes')">−</button>
                 <input type="number" id="nb-equipes" name="nb-equipes" min="2" max="5" value="2">
-                <button class="number-btn plus" onclick="incrementValue('nb-equipes')">+</button>
+                <button type="button" class="number-btn plus" onclick="incrementValue('nb-equipes')">+</button>
             </div>
         </div>
 
         <div class="config-item">
             <label for="nb-mots">Nombre de mots par joueur <span class="limits">(max 10)</span></label>
             <div class="number-input">
-                <button class="number-btn minus" onclick="decrementValue('nb-mots')">−</button>
+                <button type="button" class="number-btn minus" onclick="decrementValue('nb-mots')">−</button>
                 <input type="number" id="nb-mots" name="nb-mots" min="1" max="10" value="4">
-                <button class="number-btn plus" onclick="incrementValue('nb-mots')">+</button>
+                <button type="button" class="number-btn plus" onclick="incrementValue('nb-mots')">+</button>
             </div>
         </div>
 
         <div class="config-item">
             <label>Choix des mots</label>
             <div class="choice-buttons">
-                <button class="choice-btn" id="aleatoire" onclick="selectChoice('aleatoire')">Aléatoire</button>
-                <button class="choice-btn" id="personnalise" onclick="selectChoice('personnalise')">Personnalisé</button>
+                <button type="button" class="choice-btn" id="aleatoire" onclick="selectChoice('aleatoire')">Aléatoire</button>
+                <button type="button" class="choice-btn" id="personnalise" onclick="selectChoice('personnalise')">Personnalisé</button>
             </div>
+            <input type="hidden" id="choix-mots" name="choix-mots" value="aleatoire">
         </div>
 
-        <button class="game-button start-button" onclick="demarrerPartie()">
+        <button type="submit" class="game-button start-button">
             Démarrer la partie
         </button>
-    </div>
+    </form>
 </div>
 
 <script>
@@ -52,6 +53,7 @@ function selectChoice(choice) {
         btn.classList.remove('selected');
     });
     document.getElementById(choice).classList.add('selected');
+    document.getElementById('choix-mots').value = choice;
 }
 
 function incrementValue(inputId) {
@@ -86,12 +88,6 @@ function validateInput(input) {
     }
     
     input.value = value;
-}
-
-function demarrerPartie() {
-    const nbEquipes = document.getElementById('nb-equipes').value;
-    const nbMots = document.getElementById('nb-mots').value;
-    console.log(`Démarrage de la partie avec ${nbEquipes} équipes, ${nbMots} mots par joueur et choix ${selectedChoice}`);
 }
 
 // Initialiser le bouton sélectionné par défaut
