@@ -146,6 +146,12 @@ function updateSliderValue(sliderId, valueId, settingKey) {
     valueDisplay.className = 'slider-value';
     sliderContainer.appendChild(valueDisplay);
     
+    // Définir la valeur initiale à 30 pour le slider de durée
+    if (sliderId === 'duree-manche') {
+        slider.value = 30;
+        advancedSettings.dureeManche = 30;
+    }
+    
     function updatePosition(isInitial = false) {
         const rect = slider.getBoundingClientRect();
         const containerRect = sliderContainer.getBoundingClientRect();
@@ -155,7 +161,6 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         const containerLeft = containerRect.left;
         const sliderLeft = rect.left;
         const offset = sliderLeft - containerLeft;
-        // Ajuster le décalage en fonction du slider
         const initialOffset = isInitial ? (sliderId === 'duree-manche' ? 5 : 3) : 0;
         const position = thumbPosition + offset + initialOffset;
         
@@ -172,7 +177,6 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.attributeName === 'style' && modal.style.display === 'flex') {
-                    // Le modal est ouvert, on peut initialiser la position
                     setTimeout(() => updatePosition(true), 0);
                     observer.disconnect();
                 }
@@ -181,11 +185,9 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         
         observer.observe(modal, { attributes: true });
     } else {
-        // Pour les autres sliders, initialiser normalement
         updatePosition(true);
     }
     
-    // Mettre à jour aussi lors du redimensionnement
     window.addEventListener('resize', () => updatePosition(false));
 }
 
