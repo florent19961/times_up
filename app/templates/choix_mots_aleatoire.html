@@ -23,19 +23,20 @@
         {% endif %}
     {% endwith %}
 
-    <form method="POST" class="player-names-form">
+    <form method="POST" class="player-names-form" id="player-names-form">
         <div class="players-grid">
             {% for i in range(session['nb_joueurs']) %}
             <div class="player-input-container">
                 <input type="text" 
                        id="joueur_{{ i }}" 
                        name="joueur_{{ i }}" 
-                       class="player-name-input default-value" 
-                       placeholder="Nom du joueur {{ i + 1 }}"
-                       value="Joueur {{ i + 1 }}"
+                       class="player-name-input {% if not session['noms_joueurs'][i] %}default-value{% endif %}" 
+                       placeholder="Joueur {{ i + 1 }}"
+                       value="{% if session['noms_joueurs'][i] %}{{ session['noms_joueurs'][i] }}{% else %}Joueur {{ i + 1 }}{% endif %}"
                        required
                        autocomplete="off"
-                       maxlength="20">
+                       maxlength="20"
+                       data-error="nom en doublon">
             </div>
             {% endfor %}
         </div>
@@ -72,10 +73,12 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    position: relative;
 }
 
 .player-name-input {
     padding: 0.8rem;
+    padding-right: 2.5rem;
     border: 2px solid var(--secondary-color);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.1);
@@ -99,11 +102,87 @@
     color: rgba(255, 255, 255, 0.5);
 }
 
+.player-name-input.error {
+    border-color: #ff6b6b;
+}
+
+.clear-button {
+    position: absolute;
+    right: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.2rem;
+    height: 1.2rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.3s ease;
+    border: none;
+    padding: 0;
+}
+
+.player-input-container:hover .clear-button {
+    opacity: 1;
+}
+
+.clear-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.player-input-container.error .clear-button {
+    background: #ff6b6b;
+    color: white;
+    opacity: 1;
+}
+
+.player-input-container.error .clear-button:hover {
+    background: #ff5252;
+}
+
+.player-input-container::before {
+    content: "nom en doublon";
+    position: absolute;
+    right: 3rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: #ff6b6b;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+}
+
+.player-input-container.error::before {
+    opacity: 1;
+}
+
 .start-button {
     width: 100%;
     max-width: 400px;
     margin: 0 auto;
     display: block;
+    transition: all 0.3s ease;
+}
+
+.start-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 @media (max-width: 600px) {
@@ -115,15 +194,137 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Focus sur le premier input
-    document.querySelector('.player-name-input').focus();
-    
-    // Gestion de la navigation au clavier
+    const form = document.getElementById('player-names-form');
+    const startButton = document.querySelector('.start-button');
     const inputs = document.querySelectorAll('.player-name-input');
-    inputs.forEach((input, index) => {
+
+    // Fonction pour sauvegarder un nom en temps réel
+    function savePlayerName(index, name) {
+        console.log('Saving name:', { index, name }); // Log pour déboguer
+        fetch('{{ url_for("main.save_player_name") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                index: index,
+                name: name
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Server response:', data); // Log pour déboguer
+            if (data.status === 'success') {
+                // Mettre à jour l'input avec le nom sauvegardé
+                const input = document.getElementById(`joueur_${index}`);
+                if (input) {
+                    input.value = data.saved_name || name;
+                    if (data.saved_name) {
+                        input.classList.remove('default-value');
+                    }
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Ajouter les boutons de suppression
+    inputs.forEach(input => {
+        const container = input.parentElement;
+        const clearButton = document.createElement('button');
+        clearButton.className = 'clear-button';
+        clearButton.innerHTML = '×';
+        clearButton.title = 'Effacer le nom';
+        clearButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            input.value = '';
+            input.classList.add('default-value');
+            input.value = `Joueur ${Array.from(inputs).indexOf(input) + 1}`;
+            savePlayerName(Array.from(inputs).indexOf(input), '');
+            checkDuplicateNames();
+            input.focus();
+        });
+        container.appendChild(clearButton);
+    });
+
+    function sanitizeInput(input) {
+        // Supprimer les espaces au début et à la fin
+        let value = input.value.trim();
+        // Échapper les caractères HTML
+        value = value.replace(/[&<>"']/g, function(match) {
+            const entities = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            };
+            return entities[match];
+        });
+        return value;
+    }
+
+    function checkDuplicateNames() {
+        const names = Array.from(inputs).map(input => sanitizeInput(input));
+        let hasDuplicates = false;
+
+        // Réinitialiser tous les champs
+        inputs.forEach(input => {
+            input.classList.remove('error');
+            input.parentElement.classList.remove('error');
+        });
+
+        // Vérifier chaque nom
+        names.forEach((name, index) => {
+            if (name === '') return; // Ignorer les noms vides
+            
+            // Vérifier si ce nom apparaît ailleurs dans la liste
+            const duplicateIndexes = names.reduce((acc, currentName, currentIndex) => {
+                if (currentName === name && currentIndex !== index) {
+                    acc.push(currentIndex);
+                }
+                return acc;
+            }, []);
+
+            // Si des doublons sont trouvés
+            if (duplicateIndexes.length > 0) {
+                hasDuplicates = true;
+                // Marquer ce champ comme étant en erreur
+                inputs[index].classList.add('error');
+                inputs[index].parentElement.classList.add('error');
+                // Marquer aussi les autres champs avec le même nom
+                duplicateIndexes.forEach(dupIndex => {
+                    inputs[dupIndex].classList.add('error');
+                    inputs[dupIndex].parentElement.classList.add('error');
+                });
+            }
+        });
+
+        startButton.disabled = hasDuplicates;
+        return !hasDuplicates;
+    }
+
+    // Vérifier les doublons à chaque modification
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            // Limiter la longueur du texte
+            if (this.value.length > 20) {
+                this.value = this.value.slice(0, 20);
+            }
+            // Si l'utilisateur commence à taper, retirer la classe default-value
+            if (this.value !== `Joueur ${Array.from(inputs).indexOf(this) + 1}`) {
+                this.classList.remove('default-value');
+            }
+            // Sauvegarder le nom en temps réel
+            const index = Array.from(inputs).indexOf(this);
+            const sanitizedValue = sanitizeInput(this);
+            savePlayerName(index, sanitizedValue);
+            checkDuplicateNames();
+        });
+        
         // Gérer le focus
         input.addEventListener('focus', function() {
-            if (this.value === `Joueur ${index + 1}`) {
+            if (this.value === `Joueur ${Array.from(inputs).indexOf(this) + 1}`) {
                 this.value = '';
                 this.classList.remove('default-value');
             }
@@ -131,16 +332,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Gérer la perte de focus
         input.addEventListener('blur', function() {
-            if (this.value.trim() === '') {
-                this.value = `Joueur ${index + 1}`;
+            const sanitizedValue = sanitizeInput(this);
+            if (sanitizedValue === '') {
+                this.value = `Joueur ${Array.from(inputs).indexOf(this) + 1}`;
                 this.classList.add('default-value');
+                savePlayerName(Array.from(inputs).indexOf(this), '');
+            } else {
+                this.value = sanitizedValue;
+                savePlayerName(Array.from(inputs).indexOf(this), sanitizedValue);
             }
+            checkDuplicateNames();
         });
 
         // Gérer la navigation au clavier
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                const index = Array.from(inputs).indexOf(this);
                 if (index < inputs.length - 1) {
                     inputs[index + 1].focus();
                 } else {
@@ -149,6 +357,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Empêcher la soumission du formulaire si la session est expirée
+    form.addEventListener('submit', function(e) {
+        if (!checkDuplicateNames()) {
+            e.preventDefault();
+            return;
+        }
+
+        // Vérifier que tous les noms sont valides
+        const names = Array.from(inputs).map(input => sanitizeInput(input));
+        const hasInvalidNames = names.some(name => name === '' || name.length > 20);
+        
+        if (hasInvalidNames) {
+            e.preventDefault();
+            alert('Veuillez entrer des noms valides pour tous les joueurs.');
+            return;
+        }
+    });
+
+    // Vérifier les doublons au chargement de la page
+    checkDuplicateNames();
 });
 </script>
 {% endblock %} 

@@ -65,24 +65,91 @@ def configurer_partie():
 
 @bp.route('/choix_mots_aleatoire', methods=['GET', 'POST'])
 def choix_mots_aleatoire():
+    # Vérifier que les paramètres nécessaires sont en session
+    required_params = ['nb_joueurs', 'choix_mots']
+    if not all(param in session for param in required_params):
+        flash('Configuration de partie invalide. Veuillez recommencer.', 'error')
+        return redirect(url_for('main.configurer_partie'))
+
     if request.method == 'POST':
-        # Récupérer les noms des joueurs
+        # Récupérer et nettoyer les noms des joueurs
         noms_joueurs = []
         for i in range(session['nb_joueurs']):
-            nom = request.form.get(f'joueur_{i}')
-            if not nom or len(nom.strip()) == 0:
+            nom = request.form.get(f'joueur_{i}', '').strip()
+            
+            # Validation du nom
+            if not nom:
                 flash('Tous les joueurs doivent avoir un nom', 'error')
                 return render_template('choix_mots_aleatoire.html'), 400
-            noms_joueurs.append(nom.strip())
+            
+            # Limiter la longueur du nom
+            if len(nom) > 20:
+                flash('Les noms ne doivent pas dépasser 20 caractères', 'error')
+                return render_template('choix_mots_aleatoire.html'), 400
+            
+            # Nettoyer le nom (échapper les caractères HTML)
+            nom = nom.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            noms_joueurs.append(nom)
+        
+        # Vérifier les doublons
+        if len(set(noms_joueurs)) != len(noms_joueurs):
+            flash('Des joueurs ont le même nom. Veuillez modifier les pseudonymes identiques.', 'error')
+            return render_template('choix_mots_aleatoire.html'), 400
         
         # Stocker les noms en session
         session['noms_joueurs'] = noms_joueurs
+        session.modified = True
         
         # Rediriger vers la page de jeu
         return redirect(url_for('main.play'))
+    
+    # Initialiser ou mettre à jour la liste des noms
+    if 'noms_joueurs' not in session:
+        session['noms_joueurs'] = [''] * session['nb_joueurs']
+        session.modified = True
+    else:
+        # Si le nombre de joueurs a changé, ajuster la liste des noms
+        current_noms = session['noms_joueurs']
+        new_noms = [''] * session['nb_joueurs']
+        # Copier les noms existants jusqu'à la nouvelle taille
+        for i in range(min(len(current_noms), session['nb_joueurs'])):
+            new_noms[i] = current_noms[i]
+        session['noms_joueurs'] = new_noms
+        session.modified = True
     
     return render_template('choix_mots_aleatoire.html')
 
 @bp.route('/rules')
 def rules():
-    return render_template('rules.html') 
+    return render_template('rules.html')
+
+@bp.route('/save_choice', methods=['POST'])
+def save_choice():
+    data = request.get_json()
+    choice = data.get('choice')
+    if choice in ['aleatoire', 'personnalise']:
+        session['choix_mots'] = choice
+        return {'status': 'success'}, 200
+    return {'status': 'error', 'message': 'Choix invalide'}, 400
+
+@bp.route('/save_player_name', methods=['POST'])
+def save_player_name():
+    data = request.get_json()
+    player_index = data.get('index')
+    player_name = data.get('name', '').strip()
+    
+    # Vérifier que l'index est valide
+    if not isinstance(player_index, int) or player_index < 0 or player_index >= session.get('nb_joueurs', 0):
+        return {'status': 'error', 'message': 'Index de joueur invalide'}, 400
+    
+    # Initialiser la liste si elle n'existe pas
+    if 'noms_joueurs' not in session:
+        session['noms_joueurs'] = [''] * session['nb_joueurs']
+    
+    # Sauvegarder le nom
+    session['noms_joueurs'][player_index] = player_name
+    
+    # Marquer la session comme modifiée
+    session.modified = True
+    
+    return {'status': 'success', 'saved_name': player_name}, 200 

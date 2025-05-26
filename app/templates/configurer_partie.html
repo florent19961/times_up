@@ -34,7 +34,12 @@
             <label for="nb-equipes">Nombre d'équipes <span class="limits">(2-5)</span></label>
             <div class="number-input">
                 <button type="button" class="number-btn minus" onclick="decrementValue('nb-equipes')">−</button>
-                <input type="number" id="nb-equipes" name="nb-equipes" min="2" max="5" value="2">
+                <input type="number" 
+                       id="nb-equipes" 
+                       name="nb-equipes" 
+                       min="2" 
+                       max="5" 
+                       value="{{ session.get('nb_equipes', 2) }}">
                 <button type="button" class="number-btn plus" onclick="incrementValue('nb-equipes')">+</button>
             </div>
         </div>
@@ -43,7 +48,12 @@
             <label for="nb-joueurs">Nombre de joueurs <span class="limits">(min: <span id="min-joueurs">4</span>, max: 20)</span></label>
             <div class="number-input">
                 <button type="button" class="number-btn minus" onclick="decrementValue('nb-joueurs')">−</button>
-                <input type="number" id="nb-joueurs" name="nb-joueurs" min="4" max="20" value="4">
+                <input type="number" 
+                       id="nb-joueurs" 
+                       name="nb-joueurs" 
+                       min="4" 
+                       max="20" 
+                       value="{{ session.get('nb_joueurs', 4) }}">
                 <button type="button" class="number-btn plus" onclick="incrementValue('nb-joueurs')">+</button>
             </div>
         </div>
@@ -51,10 +61,19 @@
         <div class="config-item">
             <label>Choix des mots</label>
             <div class="choice-buttons">
-                <button type="button" class="choice-btn" id="aleatoire" onclick="selectChoice('aleatoire')">Aléatoire</button>
-                <button type="button" class="choice-btn" id="personnalise" onclick="selectChoice('personnalise')">Personnalisé</button>
+                <button type="button" 
+                        class="choice-btn {% if session.get('choix_mots') == 'aleatoire' %}selected{% endif %}" 
+                        id="aleatoire" 
+                        onclick="selectChoice('aleatoire')">Aléatoire</button>
+                <button type="button" 
+                        class="choice-btn {% if session.get('choix_mots') == 'personnalise' %}selected{% endif %}" 
+                        id="personnalise" 
+                        onclick="selectChoice('personnalise')">Personnalisé</button>
             </div>
-            <input type="hidden" id="choix-mots" name="choix-mots" value="aleatoire">
+            <input type="hidden" 
+                   id="choix-mots" 
+                   name="choix-mots" 
+                   value="{{ session.get('choix_mots', 'aleatoire') }}">
         </div>
 
         <input type="hidden" id="hidden-choix-equipe" name="choix-equipe" value="personnalise">
@@ -142,6 +161,17 @@ function selectChoice(choice) {
     });
     document.getElementById(choice).classList.add('selected');
     document.getElementById('choix-mots').value = choice;
+
+    // Sauvegarder le choix dans la session
+    fetch('{{ url_for("main.save_choice") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            choice: choice
+        })
+    });
 }
 
 function selectTeamChoice(choice) {
@@ -318,22 +348,13 @@ function loadAdvancedSettings() {
         selectTeamChoice(advancedSettings.choixEquipe);
         selectReserveChoice(advancedSettings.motReserve);
         
-        // Mettre à jour les sliders
         const motsSlider = document.getElementById('nb-mots-total');
-        const dureeSlider = document.getElementById('duree-manche');
-        
         motsSlider.value = advancedSettings.nbMotsTotal;
+        document.getElementById('nb-mots-value').textContent = advancedSettings.nbMotsTotal;
+        
+        const dureeSlider = document.getElementById('duree-manche');
         dureeSlider.value = advancedSettings.dureeManche;
-        
-        // Mettre à jour les champs cachés du formulaire
-        document.getElementById('hidden-choix-equipe').value = advancedSettings.choixEquipe;
-        document.getElementById('hidden-nb-mots-total').value = advancedSettings.nbMotsTotal;
-        document.getElementById('hidden-duree-manche').value = advancedSettings.dureeManche;
-        document.getElementById('choix-reserve').value = advancedSettings.motReserve;
-        
-        // Mettre à jour les valeurs affichées des sliders
-        updateSliderValue('nb-mots-total', null, 'nbMotsTotal');
-        updateSliderValue('duree-manche', null, 'dureeManche');
+        document.getElementById('duree-value').textContent = advancedSettings.dureeManche;
     }
 }
 
@@ -363,17 +384,23 @@ window.onclick = function(event) {
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
-    // Charger les paramètres sauvegardés en premier
-    loadAdvancedSettings();
+    // Initialiser le choix des mots avec la valeur de la session
+    const savedChoice = '{{ session.get("choix_mots", "aleatoire") }}';
+    selectChoice(savedChoice);
     
-    // Initialiser les autres éléments
-    selectChoice('aleatoire');
-    selectTeamChoice(advancedSettings.choixEquipe || 'personnalise');
-    selectReserveChoice(advancedSettings.motReserve || 'oui');
+    selectTeamChoice('personnalise');
+    selectReserveChoice('oui');
+    
+    // Initialiser les sliders
+    updateSliderValue('nb-mots-total', null, 'nbMotsTotal');
+    updateSliderValue('duree-manche', null, 'dureeManche');
     
     // Initialiser le nombre minimum de joueurs
     updateMinPlayers();
     updateDefaultMotsTotal();
+    
+    // Charger les paramètres sauvegardés
+    loadAdvancedSettings();
     
     // Ajouter les validateurs pour les inputs
     document.getElementById('nb-equipes').addEventListener('change', function() {
