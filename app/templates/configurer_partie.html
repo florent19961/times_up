@@ -17,6 +17,17 @@
             </svg>
         </button>
     </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    {{ message }}
+                    <button type="button" class="close-alert" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     
     <form id="config-form" class="config-form" method="POST" action="{{ url_for('main.configurer_partie') }}">
         <div class="config-item">
@@ -45,6 +56,11 @@
             </div>
             <input type="hidden" id="choix-mots" name="choix-mots" value="aleatoire">
         </div>
+
+        <input type="hidden" id="hidden-choix-equipe" name="choix-equipe" value="personnalise">
+        <input type="hidden" id="hidden-nb-mots-total" name="nb-mots-total" value="50">
+        <input type="hidden" id="hidden-duree-manche" name="duree-manche" value="30">
+        <input type="hidden" id="choix-reserve" name="choix-reserve" value="oui">
 
         <button type="submit" class="game-button start-button">
             Démarrer la partie
@@ -174,7 +190,7 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         // Offset différent pour chaque slider
         let initialOffset = 0;
         if (isInitial) {
-            initialOffset = 7
+            initialOffset = 7;
         }
         
         const position = thumbPosition + offset + initialOffset;
@@ -182,6 +198,9 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         valueDisplay.style.left = position + 'px';
         valueDisplay.textContent = slider.value;
         tempSettings[settingKey] = parseInt(slider.value);
+        
+        // Mettre à jour le champ caché du formulaire
+        document.getElementById('hidden-' + sliderId).value = slider.value;
     }
     
     slider.oninput = () => updatePosition(false);
@@ -204,7 +223,7 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         updatePosition(true);
     }
     
-    window.addEventListener('resize', () => updatePosition(true));
+    window.addEventListener('resize', () => updatePosition(false));
 }
 
 function incrementValue(inputId) {
@@ -280,6 +299,13 @@ function saveAdvancedSettings() {
     // Sauvegarder les paramètres temporaires dans les paramètres permanents
     advancedSettings = JSON.parse(JSON.stringify(tempSettings));
     localStorage.setItem('advancedSettings', JSON.stringify(advancedSettings));
+    
+    // Mettre à jour les champs cachés du formulaire
+    document.getElementById('hidden-choix-equipe').value = advancedSettings.choixEquipe;
+    document.getElementById('hidden-nb-mots-total').value = advancedSettings.nbMotsTotal;
+    document.getElementById('hidden-duree-manche').value = advancedSettings.dureeManche;
+    document.getElementById('choix-reserve').value = advancedSettings.motReserve;
+    
     closeModal();
 }
 
@@ -292,13 +318,22 @@ function loadAdvancedSettings() {
         selectTeamChoice(advancedSettings.choixEquipe);
         selectReserveChoice(advancedSettings.motReserve);
         
+        // Mettre à jour les sliders
         const motsSlider = document.getElementById('nb-mots-total');
-        motsSlider.value = advancedSettings.nbMotsTotal;
-        document.getElementById('nb-mots-value').textContent = advancedSettings.nbMotsTotal;
-        
         const dureeSlider = document.getElementById('duree-manche');
+        
+        motsSlider.value = advancedSettings.nbMotsTotal;
         dureeSlider.value = advancedSettings.dureeManche;
-        document.getElementById('duree-value').textContent = advancedSettings.dureeManche;
+        
+        // Mettre à jour les champs cachés du formulaire
+        document.getElementById('hidden-choix-equipe').value = advancedSettings.choixEquipe;
+        document.getElementById('hidden-nb-mots-total').value = advancedSettings.nbMotsTotal;
+        document.getElementById('hidden-duree-manche').value = advancedSettings.dureeManche;
+        document.getElementById('choix-reserve').value = advancedSettings.motReserve;
+        
+        // Mettre à jour les valeurs affichées des sliders
+        updateSliderValue('nb-mots-total', null, 'nbMotsTotal');
+        updateSliderValue('duree-manche', null, 'dureeManche');
     }
 }
 
@@ -328,20 +363,17 @@ window.onclick = function(event) {
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
-    selectChoice('aleatoire');
-    selectTeamChoice('personnalise');
-    selectReserveChoice('oui');
+    // Charger les paramètres sauvegardés en premier
+    loadAdvancedSettings();
     
-    // Initialiser les sliders
-    updateSliderValue('nb-mots-total', null, 'nbMotsTotal');
-    updateSliderValue('duree-manche', null, 'dureeManche');
+    // Initialiser les autres éléments
+    selectChoice('aleatoire');
+    selectTeamChoice(advancedSettings.choixEquipe || 'personnalise');
+    selectReserveChoice(advancedSettings.motReserve || 'oui');
     
     // Initialiser le nombre minimum de joueurs
     updateMinPlayers();
     updateDefaultMotsTotal();
-    
-    // Charger les paramètres sauvegardés
-    loadAdvancedSettings();
     
     // Ajouter les validateurs pour les inputs
     document.getElementById('nb-equipes').addEventListener('change', function() {
@@ -356,4 +388,53 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<style>
+.alert {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+}
+
+.alert-error {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+.alert-success {
+    background-color: #4ecdc4;
+    color: white;
+}
+
+.close-alert {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.close-alert:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+</style>
 {% endblock %}

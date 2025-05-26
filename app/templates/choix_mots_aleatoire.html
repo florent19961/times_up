@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Saisie des noms{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="{{ url_for('main.configurer_partie') }}" class="back-button" title="Retour aux paramètres">
+        <span class="back-arrow">←</span>
+    </a>
+
+    <div class="header-container">
+        <h1 class="game-title">Saisie des noms</h1>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    {{ message }}
+                    <button type="button" class="close-alert" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="player-names-form">
+        <div class="players-grid">
+            {% for i in range(session['nb_joueurs']) %}
+            <div class="player-input-container">
+                <input type="text" 
+                       id="joueur_{{ i }}" 
+                       name="joueur_{{ i }}" 
+                       class="player-name-input default-value" 
+                       placeholder="Nom du joueur {{ i + 1 }}"
+                       value="Joueur {{ i + 1 }}"
+                       required
+                       autocomplete="off"
+                       maxlength="20">
+            </div>
+            {% endfor %}
+        </div>
+
+        <button type="submit" class="game-button start-button">
+            Démarrer la partie
+        </button>
+    </form>
+</div>
+
+{% if session['nb_joueurs'] >= 15 %}
+<style>
+.players-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+}
+</style>
+{% endif %}
+
+<style>
+.player-names-form {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.player-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.player-name-input {
+    padding: 0.8rem;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.player-name-input.default-value {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.player-name-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+}
+
+.player-name-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.start-button {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    display: block;
+}
+
+@media (max-width: 600px) {
+    .players-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Focus sur le premier input
+    document.querySelector('.player-name-input').focus();
+    
+    // Gestion de la navigation au clavier
+    const inputs = document.querySelectorAll('.player-name-input');
+    inputs.forEach((input, index) => {
+        // Gérer le focus
+        input.addEventListener('focus', function() {
+            if (this.value === `Joueur ${index + 1}`) {
+                this.value = '';
+                this.classList.remove('default-value');
+            }
+        });
+
+        // Gérer la perte de focus
+        input.addEventListener('blur', function() {
+            if (this.value.trim() === '') {
+                this.value = `Joueur ${index + 1}`;
+                this.classList.add('default-value');
+            }
+        });
+
+        // Gérer la navigation au clavier
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                } else {
+                    document.querySelector('.start-button').focus();
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 
