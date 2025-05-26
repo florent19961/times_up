@@ -150,6 +150,12 @@ function updateSliderValue(sliderId, valueId, settingKey) {
     const slider = document.getElementById(sliderId);
     const sliderContainer = slider.parentElement;
     
+    // Supprimer les anciens éléments valueDisplay
+    const oldValueDisplays = sliderContainer.getElementsByClassName('slider-value');
+    while(oldValueDisplays.length > 0) {
+        oldValueDisplays[0].remove();
+    }
+    
     // Créer l'élément qui affichera la valeur
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'slider-value';
@@ -169,13 +175,13 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         let initialOffset = 0;
         if (isInitial) {
             if (sliderId === 'duree-manche') {
-                initialOffset = 5; // 5 pixels pour durée manche
+                initialOffset = 7; // 5 pixels pour durée manche
             } else if (sliderId === 'nb-mots-total') {
-                initialOffset = 7; // 3 pixels pour nombre de mots total
+                initialOffset = 7; // 7 pixels pour nombre de mots total
             }
         }
         
-        const position = thumbPosition + offset + initialOffset;
+        const position = thumbPosition + offset;
         
         valueDisplay.style.left = position + 'px';
         valueDisplay.textContent = slider.value;
@@ -248,18 +254,6 @@ function updateMinPlayers() {
     }
 }
 
-function updateDefaultMotsTotal() {
-    // const nbJoueurs = parseInt(document.getElementById('nb-joueurs').value);
-    
-    // // Limiter à 80
-    // totalMots = Math.min(totalMots, 80);
-    
-    // Mettre à jour le slider et la valeur
-    const slider = document.getElementById('nb-mots-total');
-    slider.value = totalMots;
-    document.getElementById('nb-mots-value').textContent = totalMots;
-    advancedSettings.nbMotsTotal = totalMots;
-}
 
 function openModal() {
     // Copier les paramètres actuels dans les paramètres temporaires
@@ -271,6 +265,8 @@ function openModal() {
     
     const motsSlider = document.getElementById('nb-mots-total');
     motsSlider.value = tempSettings.nbMotsTotal;
+    
+
     
     selectTeamChoice(tempSettings.choixEquipe);
     selectReserveChoice(tempSettings.motReserve);
@@ -323,11 +319,6 @@ function validateInput(input) {
     }
     
     input.value = value;
-    
-    // Si c'est le nombre de joueurs qui change, mettre à jour le nombre de mots total
-    if (input.id === 'nb-joueurs') {
-        updateDefaultMotsTotal();
-    }
 }
 
 // Fermer le modal si on clique en dehors
