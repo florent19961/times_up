@@ -164,7 +164,18 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         const containerLeft = containerRect.left;
         const sliderLeft = rect.left;
         const offset = sliderLeft - containerLeft;
-        const position = thumbPosition + offset;
+        
+        // Offset différent pour chaque slider
+        let initialOffset = 0;
+        if (isInitial) {
+            if (sliderId === 'duree-manche') {
+                initialOffset = 5; // 5 pixels pour durée manche
+            } else if (sliderId === 'nb-mots-total') {
+                initialOffset = 7; // 3 pixels pour nombre de mots total
+            }
+        }
+        
+        const position = thumbPosition + offset + initialOffset;
         
         valueDisplay.style.left = position + 'px';
         valueDisplay.textContent = slider.value;
@@ -179,8 +190,8 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.attributeName === 'style' && modal.style.display === 'flex') {
-                    // Utiliser le même mécanisme que pour le dynamique
-                    slider.dispatchEvent(new Event('input'));
+                    // Forcer l'initialisation avec isInitial = true
+                    updatePosition(true);
                     observer.disconnect();
                 }
             });
@@ -238,15 +249,10 @@ function updateMinPlayers() {
 }
 
 function updateDefaultMotsTotal() {
-    const nbJoueurs = parseInt(document.getElementById('nb-joueurs').value);
-    const motsParJoueur = 6;
-    let totalMots = nbJoueurs * motsParJoueur;
+    // const nbJoueurs = parseInt(document.getElementById('nb-joueurs').value);
     
-    // Arrondir au multiple de 5 supérieur
-    totalMots = Math.ceil(totalMots / 5) * 5;
-    
-    // Limiter à 80
-    totalMots = Math.min(totalMots, 80);
+    // // Limiter à 80
+    // totalMots = Math.min(totalMots, 80);
     
     // Mettre à jour le slider et la valeur
     const slider = document.getElementById('nb-mots-total');
@@ -270,26 +276,6 @@ function openModal() {
     selectReserveChoice(tempSettings.motReserve);
     
     document.getElementById('advanced-settings-modal').style.display = 'flex';
-    
-    // Mettre à jour la position des chiffres des sliders
-    const modal = document.getElementById('advanced-settings-modal');
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'style' && modal.style.display === 'flex') {
-                // Mettre à jour la position des chiffres pour les deux sliders
-                const dureeSlider = document.getElementById('duree-manche');
-                const motsSlider = document.getElementById('nb-mots-total');
-                
-                // Forcer une mise à jour de la position pour chaque slider
-                dureeSlider.dispatchEvent(new Event('input'));
-                motsSlider.dispatchEvent(new Event('input'));
-                
-                observer.disconnect();
-            }
-        });
-    });
-    
-    observer.observe(modal, { attributes: true });
 }
 
 function closeModal() {
