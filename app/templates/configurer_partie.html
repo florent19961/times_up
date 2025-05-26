@@ -174,14 +174,10 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         // Offset différent pour chaque slider
         let initialOffset = 0;
         if (isInitial) {
-            if (sliderId === 'duree-manche') {
-                initialOffset = 7; // 5 pixels pour durée manche
-            } else if (sliderId === 'nb-mots-total') {
-                initialOffset = 7; // 7 pixels pour nombre de mots total
-            }
+            initialOffset = 7
         }
         
-        const position = thumbPosition + offset;
+        const position = thumbPosition + offset + initialOffset;
         
         valueDisplay.style.left = position + 'px';
         valueDisplay.textContent = slider.value;
@@ -208,7 +204,7 @@ function updateSliderValue(sliderId, valueId, settingKey) {
         updatePosition(true);
     }
     
-    window.addEventListener('resize', () => updatePosition(false));
+    window.addEventListener('resize', () => updatePosition(true));
 }
 
 function incrementValue(inputId) {
@@ -266,7 +262,8 @@ function openModal() {
     const motsSlider = document.getElementById('nb-mots-total');
     motsSlider.value = tempSettings.nbMotsTotal;
     
-
+    updateSliderValue('duree-manche', null, 'dureeManche');
+    updateSliderValue('nb-mots-total', null, 'nbMotsTotal');
     
     selectTeamChoice(tempSettings.choixEquipe);
     selectReserveChoice(tempSettings.motReserve);
