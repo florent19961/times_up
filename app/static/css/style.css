@@ -771,3 +771,45 @@ input[type="number"]::-webkit-outer-spin-button {
         padding: 0.1rem 0.3rem;
     }
 }
+
+/* Styles communs pour les boutons de suppression */
+.clear-button {
+    position: absolute;
+    right: calc(80px + 1rem);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.2rem;
+    height: 1.2rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.3s ease;
+    border: none;
+    padding: 0;
+    z-index: 1;
+}
+
+/* Correction du sélecteur pour le survol */
+.player-input-container:hover .clear-button,
+.word-input-container:hover .clear-button {
+    opacity: 1;
+}
+
+.clear-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.clear-button:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Style spécifique pour la page des mots */
+.word-input-container .clear-button {
+    right: calc(45px + 1.5rem);
+}

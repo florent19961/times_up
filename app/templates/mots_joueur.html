@@ -15,21 +15,37 @@
         </div>
     </div>
 
-    <div class="words-container">
-        {% if mots %}
-            <div class="words-grid">
-                {% for mot in mots %}
-                    <div class="word-card">
-                        <span class="word-text">{{ mot }}</span>
-                    </div>
-                {% endfor %}
+    <form method="POST" class="words-form" id="words-form">
+        <div class="words-grid">
+            {% for i in range(nb_mots_total) %}
+            <div class="word-input-container">
+                <div class="input-group">
+                    <input type="text" 
+                           id="mot_{{ i }}" 
+                           name="mot_{{ i }}" 
+                           class="word-input {% if not mots[i] %}default-value{% endif %}" 
+                           placeholder="Mot {{ i + 1 }}"
+                           value="{% if mots[i] %}{{ mots[i].word }}{% endif %}"
+                           autocomplete="off"
+                           maxlength="50"
+                           data-error="mot en doublon">
+                    <button type="button" 
+                            class="random-word-button" 
+                            data-input-id="mot_{{ i }}"
+                            title="Générer un mot aléatoire">
+                        <span class="dice-icon">🎲</span>
+                    </button>
+                </div>
             </div>
-        {% else %}
-            <div class="no-words-message">
-                <p>Aucun mot n'a encore été généré pour ce joueur.</p>
-            </div>
-        {% endif %}
-    </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="game-button save-button">
+                Enregistrer les mots
+            </button>
+        </div>
+    </form>
 </div>
 
 <style>
@@ -55,42 +71,143 @@
     font-weight: bold;
 }
 
-.words-container {
-    margin-top: 2rem;
+.words-form {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
 }
 
 .words-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
-.word-card {
+.word-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    position: relative;
+}
+
+.word-input {
+    padding: 0.8rem;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.word-input.default-value {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.word-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+}
+
+.word-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.word-input.error {
+    border-color: #ff6b6b;
+}
+
+.random-word-button {
+    padding: 0.8rem;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid var(--secondary-color);
     border-radius: 8px;
-    padding: 1rem;
-    text-align: center;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 45px;
+    height: 45px;
+}
+
+.random-word-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.random-word-button:active {
+    transform: translateY(0);
+}
+
+.dice-icon {
+    font-size: 1.2rem;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.save-button {
+    width: 100%;
+    max-width: 400px;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
     transition: all 0.3s ease;
 }
 
-.word-card:hover {
+.save-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-color: var(--primary-color);
 }
 
-.word-text {
-    font-size: 1.2rem;
-    color: var(--text-color);
+.save-button:active {
+    transform: translateY(0);
 }
 
-.no-words-message {
-    text-align: center;
-    padding: 2rem;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: var(--text-color);
+.save-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.word-input-container::before {
+    content: "mot en doublon";
+    position: absolute;
+    right: calc(45px + 3rem);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: #ff6b6b;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+.word-input-container.error::before {
+    opacity: 1;
 }
 
 @media (max-width: 600px) {
@@ -99,4 +216,161 @@
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('words-form');
+    const inputs = form.querySelectorAll('.word-input');
+    const saveButton = form.querySelector('.save-button');
+    const currentCount = document.querySelector('.current-count');
+    const randomButtons = document.querySelectorAll('.random-word-button');
+
+    // Ajouter les boutons de suppression
+    inputs.forEach(input => {
+        const container = input.parentElement;
+        const clearButton = document.createElement('button');
+        clearButton.className = 'clear-button';
+        clearButton.innerHTML = '×';
+        clearButton.title = 'Effacer le mot';
+        clearButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            input.value = '';
+            input.classList.add('default-value');
+            updateWordCount();
+            checkDuplicateWords();
+            input.focus();
+        });
+        container.appendChild(clearButton);
+    });
+
+    function sanitizeInput(input) {
+        // Supprimer les espaces au début et à la fin
+        let value = input.value.trim();
+        // Échapper les caractères HTML
+        value = value.replace(/[&<>"']/g, function(match) {
+            const entities = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            };
+            return entities[match];
+        });
+        return value;
+    }
+
+    function checkDuplicateWords() {
+        const words = Array.from(inputs).map(input => sanitizeInput(input));
+        let hasDuplicates = false;
+
+        // Réinitialiser tous les champs
+        inputs.forEach(input => {
+            input.classList.remove('error');
+            input.parentElement.classList.remove('error');
+        });
+
+        // Vérifier chaque mot
+        words.forEach((word, index) => {
+            if (word === '') return; // Ignorer les mots vides
+            
+            // Vérifier si ce mot apparaît ailleurs dans la liste
+            const duplicateIndexes = words.reduce((acc, currentWord, currentIndex) => {
+                if (currentWord === word && currentIndex !== index) {
+                    acc.push(currentIndex);
+                }
+                return acc;
+            }, []);
+
+            // Si des doublons sont trouvés
+            if (duplicateIndexes.length > 0) {
+                hasDuplicates = true;
+                // Marquer ce champ comme étant en erreur
+                inputs[index].classList.add('error');
+                inputs[index].parentElement.classList.add('error');
+                // Marquer aussi les autres champs avec le même mot
+                duplicateIndexes.forEach(dupIndex => {
+                    inputs[dupIndex].classList.add('error');
+                    inputs[dupIndex].parentElement.classList.add('error');
+                });
+            }
+        });
+
+        saveButton.disabled = hasDuplicates;
+        return !hasDuplicates;
+    }
+
+    function updateWordCount() {
+        const filledInputs = Array.from(inputs).filter(input => input.value.trim() !== '').length;
+        currentCount.textContent = filledInputs;
+    }
+
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            // Limiter la longueur du texte
+            if (this.value.length > 50) {
+                this.value = this.value.slice(0, 50);
+            }
+            // Si l'utilisateur commence à taper, retirer la classe default-value
+            if (this.value !== '') {
+                this.classList.remove('default-value');
+            }
+            updateWordCount();
+            checkDuplicateWords();
+        });
+    });
+
+    // Initial count
+    updateWordCount();
+    checkDuplicateWords();
+
+    // Gestion des boutons de génération aléatoire
+    randomButtons.forEach(button => {
+        button.addEventListener('click', async function() {
+            const inputId = this.dataset.inputId;
+            const input = document.getElementById(inputId);
+            const button = this;
+            
+            // Désactiver le bouton pendant la requête
+            button.disabled = true;
+            button.style.opacity = '0.5';
+            
+            try {
+                const response = await fetch('/generate_random_word', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    input.value = data.word;
+                    input.classList.remove('default-value');
+                    updateWordCount();
+                    checkDuplicateWords();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Erreur lors de la génération du mot');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la génération du mot');
+            } finally {
+                // Réactiver le bouton
+                button.disabled = false;
+                button.style.opacity = '1';
+            }
+        });
+    });
+
+    // Empêcher la soumission du formulaire s'il y a des doublons
+    form.addEventListener('submit', function(e) {
+        if (!checkDuplicateWords()) {
+            e.preventDefault();
+            return;
+        }
+    });
+});
+</script>
 {% endblock %} 

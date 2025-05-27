@@ -1,6 +1,9 @@
 from flask import render_template, request, session, redirect, url_for, flash
 from app.routes import bp
 from werkzeug.exceptions import BadRequest
+from app.models import db, Word, Player
+import random
+from datetime import datetime
 
 def validate_game_settings(nb_equipes, nb_joueurs, choix_mots, choix_equipe, nb_mots_total, duree_manche, mot_reserve):
     """Valide les paramètres de la partie."""
@@ -18,6 +21,60 @@ def validate_game_settings(nb_equipes, nb_joueurs, choix_mots, choix_equipe, nb_
         raise BadRequest("La durée de la manche doit être entre 20 et 60 secondes")
     if mot_reserve not in ['oui', 'non']:
         raise BadRequest("Choix de mot en réserve invalide")
+
+# Liste initiale de mots pour peupler la base de données
+INITIAL_WORDS = [
+    {"word": "maison", "difficulty": 1, "category": "habitat"},
+    {"word": "voiture", "difficulty": 1, "category": "transport"},
+    {"word": "ordinateur", "difficulty": 2, "category": "technologie"},
+    {"word": "téléphone", "difficulty": 1, "category": "technologie"},
+    {"word": "livre", "difficulty": 1, "category": "culture"},
+    {"word": "table", "difficulty": 1, "category": "mobilier"},
+    {"word": "chaise", "difficulty": 1, "category": "mobilier"},
+    {"word": "fenêtre", "difficulty": 1, "category": "habitat"},
+    {"word": "porte", "difficulty": 1, "category": "habitat"},
+    {"word": "arbre", "difficulty": 1, "category": "nature"},
+    {"word": "fleur", "difficulty": 1, "category": "nature"},
+    {"word": "soleil", "difficulty": 1, "category": "nature"},
+    {"word": "lune", "difficulty": 1, "category": "nature"},
+    {"word": "étoile", "difficulty": 1, "category": "nature"},
+    {"word": "nuage", "difficulty": 1, "category": "nature"},
+    {"word": "pluie", "difficulty": 1, "category": "nature"},
+    {"word": "neige", "difficulty": 1, "category": "nature"},
+    {"word": "vent", "difficulty": 1, "category": "nature"},
+    {"word": "montagne", "difficulty": 2, "category": "nature"},
+    {"word": "rivière", "difficulty": 2, "category": "nature"},
+    {"word": "océan", "difficulty": 2, "category": "nature"},
+    {"word": "plage", "difficulty": 2, "category": "nature"},
+    {"word": "forêt", "difficulty": 2, "category": "nature"},
+    {"word": "jardin", "difficulty": 2, "category": "nature"},
+    {"word": "animal", "difficulty": 1, "category": "faune"},
+    {"word": "chien", "difficulty": 1, "category": "faune"},
+    {"word": "chat", "difficulty": 1, "category": "faune"},
+    {"word": "oiseau", "difficulty": 2, "category": "faune"},
+    {"word": "poisson", "difficulty": 2, "category": "faune"},
+    {"word": "fruit", "difficulty": 1, "category": "nourriture"},
+    {"word": "légume", "difficulty": 2, "category": "nourriture"},
+    {"word": "pain", "difficulty": 1, "category": "nourriture"},
+    {"word": "eau", "difficulty": 1, "category": "nourriture"},
+    {"word": "café", "difficulty": 1, "category": "nourriture"},
+    {"word": "thé", "difficulty": 1, "category": "nourriture"},
+    {"word": "vin", "difficulty": 1, "category": "nourriture"},
+    {"word": "bière", "difficulty": 1, "category": "nourriture"},
+    {"word": "sucre", "difficulty": 1, "category": "nourriture"},
+    {"word": "sel", "difficulty": 1, "category": "nourriture"},
+    {"word": "poivre", "difficulty": 2, "category": "nourriture"}
+]
+
+def init_db():
+    """Initialise la base de données avec les mots par défaut."""
+    # Vérifier si la base de données est vide
+    if Word.query.count() == 0:
+        # Ajouter les mots initiaux
+        for word_data in INITIAL_WORDS:
+            word = Word(**word_data)
+            db.session.add(word)
+        db.session.commit()
 
 @bp.route('/')
 def index():
@@ -177,7 +234,7 @@ def calculate_words_distribution(nb_joueurs, nb_mots_total):
         
     return distribution
 
-@bp.route('/mots_joueur/<int:player_index>')
+@bp.route('/mots_joueur/<int:player_index>', methods=['GET', 'POST'])
 def mots_joueur(player_index):
     # Vérifier que l'index est valide
     if not isinstance(player_index, int) or player_index < 0 or player_index >= session.get('nb_joueurs', 0):
@@ -192,15 +249,87 @@ def mots_joueur(player_index):
     nb_mots_total = session.get('nb_mots_total', 50)
     mots_distribution = calculate_words_distribution(nb_joueurs, nb_mots_total)
     
-    # Initialiser la liste des mots si elle n'existe pas
-    if 'mots_joueurs' not in session:
-        session['mots_joueurs'] = [{} for _ in range(session['nb_joueurs'])]
+    # Créer ou récupérer le joueur dans la base de données
+    game_session = session.get('game_session')
+    if not game_session:
+        game_session = str(datetime.utcnow().timestamp())
+        session['game_session'] = game_session
     
-    # Récupérer les mots du joueur
-    mots = session['mots_joueurs'][player_index]
+    player = Player.query.filter_by(name=player_name, game_session=game_session).first()
+    if not player:
+        player = Player(name=player_name, game_session=game_session)
+        db.session.add(player)
+        db.session.commit()
+
+    if request.method == 'POST':
+        # Récupérer et nettoyer les mots
+        new_mots = []
+        for i in range(mots_distribution[player_index]):
+            mot = request.form.get(f'mot_{i}', '').strip()
+            
+            # Validation du mot
+            if mot:
+                # Limiter la longueur du mot
+                if len(mot) > 50:
+                    flash('Les mots ne doivent pas dépasser 50 caractères', 'error')
+                    return render_template('mots_joueur.html', 
+                                        player_index=player_index,
+                                        player_name=player_name,
+                                        mots=player.words.all(),
+                                        nb_mots_total=mots_distribution[player_index]), 400
+                
+                # Nettoyer le mot (échapper les caractères HTML)
+                mot = mot.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                
+                # Créer ou récupérer le mot dans la base de données
+                word = Word.query.filter_by(word=mot).first()
+                if not word:
+                    word = Word(word=mot, is_custom=True)
+                    db.session.add(word)
+                    db.session.commit()
+                
+                new_mots.append(word)
+        
+        # Mettre à jour les mots du joueur
+        player.words = new_mots
+        db.session.commit()
+        
+        flash('Les mots ont été enregistrés avec succès', 'success')
+        return redirect(url_for('main.choix_mots_aleatoire'))
     
     return render_template('mots_joueur.html', 
                          player_index=player_index,
                          player_name=player_name,
-                         mots=mots,
-                         nb_mots_total=mots_distribution[player_index]) 
+                         mots=player.words.all(),
+                         nb_mots_total=mots_distribution[player_index])
+
+@bp.route('/generate_random_word', methods=['POST'])
+def generate_random_word():
+    """Génère un mot aléatoire depuis la base de données, en évitant les doublons."""
+    # S'assurer que la base de données est initialisée
+    init_db()
+    
+    # Récupérer la session de jeu
+    game_session = session.get('game_session')
+    if not game_session:
+        return {'error': 'Session de jeu invalide'}, 400
+    
+    # Récupérer tous les joueurs de la session
+    players = Player.query.filter_by(game_session=game_session).all()
+    
+    # Récupérer tous les mots déjà utilisés dans cette session
+    used_words = set()
+    for player in players:
+        for word in player.words:
+            used_words.add(word.word)
+    
+    # Récupérer un mot aléatoire qui n'est pas personnalisé et qui n'a pas déjà été utilisé
+    word = Word.query.filter(
+        Word.is_custom == False,
+        ~Word.word.in_(used_words)
+    ).order_by(db.func.random()).first()
+    
+    if word:
+        return {'word': word.word}, 200
+    else:
+        return {'error': 'Aucun mot disponible'}, 404 
