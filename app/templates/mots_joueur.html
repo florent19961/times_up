@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Mots de {{ player_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="{{ url_for('main.choix_mots_aleatoire') }}" class="back-button" title="Retour à la saisie des noms">
+        <span class="back-arrow">←</span>
+    </a>
+
+    <div class="header-container">
+        <h1 class="game-title">Mots de {{ player_name }}</h1>
+        <div class="progress-indicator">
+            <span class="current-count">{{ mots|length }}</span>/<span class="total-count">{{ nb_mots_total }}</span>
+        </div>
+    </div>
+
+    <div class="words-container">
+        {% if mots %}
+            <div class="words-grid">
+                {% for mot in mots %}
+                    <div class="word-card">
+                        <span class="word-text">{{ mot }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-words-message">
+                <p>Aucun mot n'a encore été généré pour ce joueur.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.header-container {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.progress-indicator {
+    font-size: 1.2rem;
+    color: var(--text-color);
+    margin-top: 1rem;
+}
+
+.current-count {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.words-container {
+    margin-top: 2rem;
+}
+
+.words-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.word-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.word-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-color);
+}
+
+.word-text {
+    font-size: 1.2rem;
+    color: var(--text-color);
+}
+
+.no-words-message {
+    text-align: center;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text-color);
+}
+
+@media (max-width: 600px) {
+    .words-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %} 

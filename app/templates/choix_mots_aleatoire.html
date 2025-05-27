@@ -26,17 +26,27 @@
     <form method="POST" class="player-names-form" id="player-names-form">
         <div class="players-grid">
             {% for i in range(session['nb_joueurs']) %}
+            {% set base_words = session['nb_mots_total'] // session['nb_joueurs'] %}
+            {% set extra_words = session['nb_mots_total'] % session['nb_joueurs'] %}
+            {% set player_words = base_words + (1 if i < extra_words else 0) %}
             <div class="player-input-container">
-                <input type="text" 
-                       id="joueur_{{ i }}" 
-                       name="joueur_{{ i }}" 
-                       class="player-name-input {% if not session['noms_joueurs'][i] %}default-value{% endif %}" 
-                       placeholder="Joueur {{ i + 1 }}"
-                       value="{% if session['noms_joueurs'][i] %}{{ session['noms_joueurs'][i] }}{% else %}Joueur {{ i + 1 }}{% endif %}"
-                       required
-                       autocomplete="off"
-                       maxlength="20"
-                       data-error="nom en doublon">
+                <div class="input-group">
+                    <input type="text" 
+                           id="joueur_{{ i }}" 
+                           name="joueur_{{ i }}" 
+                           class="player-name-input {% if not session['noms_joueurs'][i] %}default-value{% endif %}" 
+                           placeholder="Joueur {{ i + 1 }}"
+                           value="{% if session['noms_joueurs'][i] %}{{ session['noms_joueurs'][i] }}{% else %}Joueur {{ i + 1 }}{% endif %}"
+                           required
+                           autocomplete="off"
+                           maxlength="20"
+                           data-error="nom en doublon">
+                    <a href="{{ url_for('main.mots_joueur', player_index=i) }}" 
+                       class="words-button" 
+                       title="Voir les mots">
+                        <span class="words-count">0/{{ player_words }}</span>
+                    </a>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -106,9 +116,22 @@
     border-color: #ff6b6b;
 }
 
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    position: relative;
+}
+
+.player-name-input {
+    flex: 1;
+    padding-right: 2.5rem;
+}
+
 .clear-button {
     position: absolute;
-    right: 0.8rem;
+    right: calc(80px + 1rem);
     top: 50%;
     transform: translateY(-50%);
     width: 1.2rem;
@@ -125,6 +148,7 @@
     transition: all 0.3s ease;
     border: none;
     padding: 0;
+    z-index: 1;
 }
 
 .player-input-container:hover .clear-button {
@@ -148,7 +172,7 @@
 .player-input-container::before {
     content: "nom en doublon";
     position: absolute;
-    right: 3rem;
+    right: calc(80px + 3rem);
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.7rem;
@@ -156,6 +180,7 @@
     opacity: 0;
     transition: opacity 0.3s ease;
     white-space: nowrap;
+    z-index: 1;
 }
 
 .player-input-container.error::before {
@@ -189,6 +214,33 @@
     .players-grid {
         grid-template-columns: 1fr;
     }
+}
+
+.words-button {
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-color);
+    border: 1px solid var(--secondary-color);
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    min-width: 70px;
+    text-align: center;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+}
+
+.words-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.words-count {
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0.9;
 }
 </style>
 
@@ -378,6 +430,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Vérifier les doublons au chargement de la page
     checkDuplicateNames();
+
+    // Fonction pour mettre à jour le compteur de mots
+    function updateWordsCount(playerIndex, count) {
+        const button = document.querySelector(`a[href*="mots_joueur/${playerIndex}"]`);
+        if (button) {
+            const nbMotsTotal = {{ session['nb_mots_total'] }};
+            const nbJoueurs = {{ session['nb_joueurs'] }};
+            const baseWords = Math.floor(nbMotsTotal / nbJoueurs);
+            const extraWords = nbMotsTotal % nbJoueurs;
+            const playerWords = baseWords + (playerIndex < extraWords ? 1 : 0);
+            button.querySelector('.words-count').textContent = `${count}/${playerWords}`;
+        }
+    }
+
+    // Mettre à jour les compteurs au chargement
+    {% if session.get('mots_joueurs') %}
+        {% for i in range(session['nb_joueurs']) %}
+            updateWordsCount({{ i }}, {{ session['mots_joueurs'][i]|length }});
+        {% endfor %}
+    {% endif %}
 });
 </script>
 {% endblock %} 

@@ -66,8 +66,17 @@ def configurer_partie():
 @bp.route('/choix_mots_aleatoire', methods=['GET', 'POST'])
 def choix_mots_aleatoire():
     # Vérifier que les paramètres nécessaires sont en session
-    required_params = ['nb_joueurs', 'choix_mots']
+    required_params = ['nb_joueurs', 'choix_mots', 'nb_mots_total']
     if not all(param in session for param in required_params):
+        flash('Configuration de partie invalide. Veuillez recommencer.', 'error')
+        return redirect(url_for('main.configurer_partie'))
+
+    # Vérifier que les valeurs sont valides
+    try:
+        nb_mots_total = int(session['nb_mots_total'])
+        if not (20 <= nb_mots_total <= 80):
+            raise ValueError("Nombre de mots total invalide")
+    except (ValueError, TypeError):
         flash('Configuration de partie invalide. Veuillez recommencer.', 'error')
         return redirect(url_for('main.configurer_partie'))
 
@@ -152,4 +161,46 @@ def save_player_name():
     # Marquer la session comme modifiée
     session.modified = True
     
-    return {'status': 'success', 'saved_name': player_name}, 200 
+    return {'status': 'success', 'saved_name': player_name}, 200
+
+def calculate_words_distribution(nb_joueurs, nb_mots_total):
+    """Calcule la répartition équitable des mots entre les joueurs."""
+    base_words = nb_mots_total // nb_joueurs
+    extra_words = nb_mots_total % nb_joueurs
+    
+    # Créer une liste avec la distribution de base
+    distribution = [base_words] * nb_joueurs
+    
+    # Ajouter les mots restants un par un aux premiers joueurs
+    for i in range(extra_words):
+        distribution[i] += 1
+        
+    return distribution
+
+@bp.route('/mots_joueur/<int:player_index>')
+def mots_joueur(player_index):
+    # Vérifier que l'index est valide
+    if not isinstance(player_index, int) or player_index < 0 or player_index >= session.get('nb_joueurs', 0):
+        flash('Index de joueur invalide', 'error')
+        return redirect(url_for('main.choix_mots_aleatoire'))
+    
+    # Récupérer le nom du joueur
+    player_name = session.get('noms_joueurs', [''] * session['nb_joueurs'])[player_index]
+    
+    # Calculer la répartition des mots
+    nb_joueurs = session.get('nb_joueurs', 0)
+    nb_mots_total = session.get('nb_mots_total', 50)
+    mots_distribution = calculate_words_distribution(nb_joueurs, nb_mots_total)
+    
+    # Initialiser la liste des mots si elle n'existe pas
+    if 'mots_joueurs' not in session:
+        session['mots_joueurs'] = [{} for _ in range(session['nb_joueurs'])]
+    
+    # Récupérer les mots du joueur
+    mots = session['mots_joueurs'][player_index]
+    
+    return render_template('mots_joueur.html', 
+                         player_index=player_index,
+                         player_name=player_name,
+                         mots=mots,
+                         nb_mots_total=mots_distribution[player_index]) 
