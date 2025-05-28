@@ -13,6 +13,12 @@
         <div class="progress-indicator">
             <span class="current-count">{{ mots|length }}</span>/<span class="total-count">{{ nb_mots_total }}</span>
         </div>
+        <button type="button" class="delete-words-button" onclick="confirmDeleteWords()" title="Supprimer tous les mots">
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+        </button>
     </div>
 
     <form method="POST" class="words-form" id="words-form">
@@ -44,6 +50,9 @@
             <button type="submit" class="game-button save-button">
                 Enregistrer les mots
             </button>
+            <button type="button" class="lazy-button" id="lazy-button">
+                Grosse flemme
+            </button>
         </div>
     </form>
 </div>
@@ -58,17 +67,25 @@
 .header-container {
     text-align: center;
     margin-bottom: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
 }
 
 .progress-indicator {
-    font-size: 1.2rem;
+    font-size: 2rem;
     color: var(--text-color);
-    margin-top: 1rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    min-width: 80px;
+    text-align: center;
 }
 
 .current-count {
     color: var(--primary-color);
     font-weight: bold;
+    font-size: 2.6rem;
 }
 
 .words-form {
@@ -112,6 +129,8 @@
 
 .word-input.default-value {
     color: rgba(255, 255, 255, 0.5);
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
 .word-input:focus {
@@ -144,6 +163,16 @@
     height: 45px;
 }
 
+.word-input-container .word-input.default-value + .random-word-button {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+}
+
+.word-input-container .word-input.error + .random-word-button {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+}
+
 .random-word-button:hover {
     background: rgba(255, 255, 255, 0.15);
     border-color: var(--primary-color);
@@ -160,7 +189,9 @@
 
 .form-actions {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
     margin-top: 2rem;
 }
 
@@ -177,13 +208,64 @@
     transition: all 0.3s ease;
 }
 
-.save-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.lazy-button {
+    width: 100%;
+    max-width: 300px;
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9rem;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
 }
 
-.save-button:active {
+.lazy-button::before {
+    content: '😴';
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.lazy-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.lazy-button:hover::before {
+    transform: rotate(15deg) scale(1.2);
+}
+
+.lazy-button:active {
     transform: translateY(0);
+}
+
+.lazy-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.lazy-button:disabled::before {
+    animation: snore 1s infinite;
+}
+
+@keyframes snore {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(15deg); }
+    50% { transform: rotate(0deg); }
+    75% { transform: rotate(-15deg); }
+    100% { transform: rotate(0deg); }
 }
 
 .save-button:disabled {
@@ -192,8 +274,48 @@
     opacity: 0.7;
 }
 
+.clear-button {
+    position: absolute;
+    right: calc(45px + 2.5rem);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.2rem;
+    height: 1.2rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.3s ease;
+    border: none;
+    padding: 0;
+    z-index: 1;
+}
+
+.word-input-container:hover .clear-button {
+    opacity: 1;
+}
+
+.clear-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.word-input-container.error .clear-button {
+    background: #ff6b6b;
+    color: white;
+    opacity: 1;
+}
+
+.word-input-container.error .clear-button:hover {
+    background: #ff5252;
+}
+
 .word-input-container::before {
-    content: "mot en doublon";
+    content: "doublon";
     position: absolute;
     right: calc(45px + 3rem);
     top: 50%;
@@ -210,6 +332,37 @@
     opacity: 1;
 }
 
+.delete-words-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-words-button:hover {
+    color: var(--primary-color);
+    background: rgba(255, 107, 107, 0.1);
+    transform: scale(1.1);
+}
+
+.delete-words-button:active {
+    transform: scale(0.95);
+}
+
+.delete-words-button svg {
+    width: 20px;
+    height: 20px;
+}
+
 @media (max-width: 600px) {
     .words-grid {
         grid-template-columns: 1fr;
@@ -218,6 +371,34 @@
 </style>
 
 <script>
+// Fonction pour confirmer et supprimer les mots
+function confirmDeleteWords() {
+    if (confirm('Êtes-vous sûr de vouloir supprimer tous les mots ?')) {
+        const playerIndex = {{ player_index }};
+        fetch(`/delete_player_words/${playerIndex}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Vider tous les champs
+                const inputs = document.querySelectorAll('.word-input');
+                inputs.forEach(input => {
+                    input.value = '';
+                    input.classList.add('default-value');
+                });
+                // Mettre à jour le compteur
+                updateWordCount();
+                // Vérifier les doublons
+                checkDuplicateWords();
+            }
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('words-form');
     const inputs = form.querySelectorAll('.word-input');
@@ -267,12 +448,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Réinitialiser tous les champs
         inputs.forEach(input => {
             input.classList.remove('error');
-            input.parentElement.classList.remove('error');
+            input.parentElement.parentElement.classList.remove('error');
         });
 
         // Vérifier chaque mot
         words.forEach((word, index) => {
-            if (word === '') return; // Ignorer les mots vides
+            if (word === '') {
+                inputs[index].classList.add('default-value');
+                return;
+            }
             
             // Vérifier si ce mot apparaît ailleurs dans la liste
             const duplicateIndexes = words.reduce((acc, currentWord, currentIndex) => {
@@ -287,11 +471,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 hasDuplicates = true;
                 // Marquer ce champ comme étant en erreur
                 inputs[index].classList.add('error');
-                inputs[index].parentElement.classList.add('error');
+                inputs[index].parentElement.parentElement.classList.add('error');
                 // Marquer aussi les autres champs avec le même mot
                 duplicateIndexes.forEach(dupIndex => {
                     inputs[dupIndex].classList.add('error');
-                    inputs[dupIndex].parentElement.classList.add('error');
+                    inputs[dupIndex].parentElement.parentElement.classList.add('error');
                 });
             }
         });
@@ -314,6 +498,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Si l'utilisateur commence à taper, retirer la classe default-value
             if (this.value !== '') {
                 this.classList.remove('default-value');
+            } else {
+                this.classList.add('default-value');
             }
             updateWordCount();
             checkDuplicateWords();
@@ -362,6 +548,80 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.style.opacity = '1';
             }
         });
+    });
+
+    // Gestion du bouton "Grosse flemme"
+    const lazyButton = document.getElementById('lazy-button');
+    lazyButton.addEventListener('click', async function() {
+        // Désactiver le bouton pendant le chargement
+        lazyButton.disabled = true;
+        lazyButton.style.opacity = '0.5';
+        
+        try {
+            // Récupérer tous les champs vides
+            const emptyInputs = Array.from(inputs).filter(input => input.value.trim() === '');
+            
+            // Récupérer tous les mots déjà utilisés
+            const usedWords = new Set(Array.from(inputs)
+                .filter(input => input.value.trim() !== '')
+                .map(input => input.value.trim().toLowerCase()));
+            
+            // Remplir chaque champ vide avec un mot aléatoire
+            for (const input of emptyInputs) {
+                let wordAdded = false;
+                let attempts = 0;
+                const maxAttempts = 30; // Limite de tentatives pour éviter une boucle infinie
+                
+                while (!wordAdded && attempts < maxAttempts) {
+                    try {
+                        const response = await fetch('/generate_random_word', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const newWord = data.word.toLowerCase();
+                            
+                            // Vérifier si le mot n'est pas déjà utilisé
+                            if (!usedWords.has(newWord)) {
+                                input.value = data.word;
+                                input.classList.remove('default-value');
+                                usedWords.add(newWord);
+                                wordAdded = true;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Erreur lors de la génération du mot:', error);
+                    }
+                    attempts++;
+                }
+            }
+            
+            // Mettre à jour le compteur et vérifier les doublons
+            updateWordCount();
+            if (checkDuplicateWords()) {
+                // Si pas de doublons, soumettre le formulaire
+                const formData = new FormData(form);
+                try {
+                    await fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } catch (error) {
+                    console.error('Erreur lors de la sauvegarde:', error);
+                }
+            }
+            
+        } catch (error) {
+            console.error('Erreur:', error);
+        } finally {
+            // Réactiver le bouton
+            lazyButton.disabled = false;
+            lazyButton.style.opacity = '1';
+        }
     });
 
     // Empêcher la soumission du formulaire s'il y a des doublons

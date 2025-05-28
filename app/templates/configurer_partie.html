@@ -77,12 +77,16 @@
         </div>
 
         <input type="hidden" id="hidden-choix-equipe" name="choix-equipe" value="personnalise">
-        <input type="hidden" id="hidden-nb-mots-total" name="nb-mots-total" value="50">
-        <input type="hidden" id="hidden-duree-manche" name="duree-manche" value="30">
+        <input type="hidden" id="hidden-nb-mots-total" name="nb-mots-total" value="{{ session.get('nb_mots_total', 50) }}">
+        <input type="hidden" id="hidden-duree-manche" name="duree-manche" value="{{ session.get('duree_manche', 30) }}">
         <input type="hidden" id="choix-reserve" name="choix-reserve" value="oui">
 
         <button type="submit" class="game-button start-button">
             Démarrer la partie
+        </button>
+
+        <button type="button" class="game-button reset-button" onclick="confirmReset()">
+            Réinitialiser les paramètres
         </button>
     </form>
 </div>
@@ -350,11 +354,11 @@ function loadAdvancedSettings() {
         
         const motsSlider = document.getElementById('nb-mots-total');
         motsSlider.value = advancedSettings.nbMotsTotal;
-        document.getElementById('nb-mots-value').textContent = advancedSettings.nbMotsTotal;
+        document.getElementById('hidden-nb-mots-total').value = advancedSettings.nbMotsTotal;
         
         const dureeSlider = document.getElementById('duree-manche');
         dureeSlider.value = advancedSettings.dureeManche;
-        document.getElementById('duree-value').textContent = advancedSettings.dureeManche;
+        document.getElementById('hidden-duree-manche').value = advancedSettings.dureeManche;
     }
 }
 
@@ -414,6 +418,32 @@ document.addEventListener('DOMContentLoaded', function() {
         updateDefaultMotsTotal();
     });
 });
+
+function confirmReset() {
+    if (confirm('Êtes-vous sûr de vouloir réinitialiser tous les paramètres ? Cette action supprimera tous les paramètres, noms de joueurs et mots enregistrés.')) {
+        fetch('{{ url_for("main.reset_game") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Supprimer les données du localStorage
+                localStorage.removeItem('advancedSettings');
+                // Recharger la page
+                window.location.reload();
+            } else {
+                alert('Une erreur est survenue lors de la réinitialisation.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Une erreur est survenue lors de la réinitialisation.');
+        });
+    }
+}
 </script>
 
 <style>
@@ -462,6 +492,33 @@ document.addEventListener('DOMContentLoaded', function() {
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+.reset-button {
+    width: 100%;
+    max-width: 250px;
+    margin: 1rem auto;
+    display: block;
+    background: rgba(255, 107, 107, 0.1);
+    color: var(--text-color);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 6px;
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.reset-button:hover {
+    background: rgba(255, 107, 107, 0.15);
+    border-color: rgba(255, 107, 107, 0.5);
+    transform: translateY(-1px);
+}
+
+.reset-button:active {
+    transform: translateY(0);
 }
 </style>
 {% endblock %}

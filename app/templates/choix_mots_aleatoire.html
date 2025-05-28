@@ -17,7 +17,12 @@
             {% for category, message in messages %}
                 <div class="alert alert-{{ category }}">
                     {{ message }}
-                    <button type="button" class="close-alert" onclick="this.parentElement.remove()">&times;</button>
+                    <button type="button" class="close-alert" onclick="this.parentElement.remove()">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
                 </div>
             {% endfor %}
         {% endif %}
@@ -44,7 +49,7 @@
                     <a href="{{ url_for('main.mots_joueur', player_index=i) }}" 
                        class="words-button" 
                        title="Voir les mots">
-                        <span class="words-count">0/{{ player_words }}</span>
+                        <span class="words-count">{{ session.get('mots_joueurs', [0] * session['nb_joueurs'])[i] }}/{{ player_words }}</span>
                     </a>
                 </div>
             </div>
@@ -170,7 +175,7 @@
 }
 
 .player-input-container::before {
-    content: "nom en doublon";
+    content: "doublon";
     position: absolute;
     right: calc(80px + 3rem);
     top: 50%;
@@ -231,6 +236,11 @@
     font-size: 0.9rem;
 }
 
+.words-button.incomplete {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+}
+
 .words-button:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: var(--primary-color);
@@ -241,6 +251,64 @@
     font-size: 0.85rem;
     font-weight: 500;
     opacity: 0.9;
+}
+
+.alert {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.alert-success {
+    background-color: #4ecdc4;
+    color: white;
+}
+
+.alert-error {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+.close-alert {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.5rem;
+    margin-left: 1rem;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.close-alert:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+    transform: rotate(90deg);
+}
+
+.close-alert svg {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 </style>
 
@@ -319,20 +387,32 @@ document.addEventListener('DOMContentLoaded', function() {
     function checkDuplicateNames() {
         const names = Array.from(inputs).map(input => sanitizeInput(input));
         let hasDuplicates = false;
+        let hasEmptyNames = false;
 
         // Réinitialiser tous les champs
         inputs.forEach(input => {
             input.classList.remove('error');
-            input.parentElement.classList.remove('error');
+            input.parentElement.parentElement.classList.remove('error');
         });
 
         // Vérifier chaque nom
         names.forEach((name, index) => {
-            if (name === '') return; // Ignorer les noms vides
+            const defaultName = `Joueur ${index + 1}`;
+            
+            // Vérifier si le nom est vide ou est le nom par défaut
+            if (name === '' || name === defaultName) {
+                hasEmptyNames = true;
+                inputs[index].classList.add('error');
+                inputs[index].parentElement.parentElement.classList.add('error');
+                return;
+            }
             
             // Vérifier si ce nom apparaît ailleurs dans la liste
             const duplicateIndexes = names.reduce((acc, currentName, currentIndex) => {
-                if (currentName === name && currentIndex !== index) {
+                // Ignorer les noms par défaut dans la comparaison
+                if (currentIndex !== index && 
+                    currentName === name && 
+                    currentName !== `Joueur ${currentIndex + 1}`) {
                     acc.push(currentIndex);
                 }
                 return acc;
@@ -343,17 +423,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 hasDuplicates = true;
                 // Marquer ce champ comme étant en erreur
                 inputs[index].classList.add('error');
-                inputs[index].parentElement.classList.add('error');
+                inputs[index].parentElement.parentElement.classList.add('error');
                 // Marquer aussi les autres champs avec le même nom
                 duplicateIndexes.forEach(dupIndex => {
                     inputs[dupIndex].classList.add('error');
-                    inputs[dupIndex].parentElement.classList.add('error');
+                    inputs[dupIndex].parentElement.parentElement.classList.add('error');
                 });
             }
         });
 
-        startButton.disabled = hasDuplicates;
-        return !hasDuplicates;
+        // Si tous les noms sont par défaut, ne pas considérer comme des doublons
+        const allDefault = names.every((name, index) => name === `Joueur ${index + 1}`);
+        if (allDefault) {
+            hasDuplicates = false;
+            inputs.forEach(input => {
+                input.classList.remove('error');
+                input.parentElement.parentElement.classList.remove('error');
+            });
+        }
+
+        startButton.disabled = hasDuplicates || hasEmptyNames || !checkAllWordsFilled();
+        return !hasDuplicates && !hasEmptyNames;
     }
 
     // Vérifier les doublons à chaque modification
@@ -431,6 +521,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Vérifier les doublons au chargement de la page
     checkDuplicateNames();
 
+    // Fonction pour vérifier si tous les joueurs ont rempli leurs mots
+    function checkAllWordsFilled() {
+        const nbMotsTotal = {{ session['nb_mots_total'] }};
+        const nbJoueurs = {{ session['nb_joueurs'] }};
+        const motsJoueurs = {{ session.get('mots_joueurs', [0] * session['nb_joueurs']) | tojson | safe }};
+        
+        for (let i = 0; i < nbJoueurs; i++) {
+            const baseWords = Math.floor(nbMotsTotal / nbJoueurs);
+            const extraWords = nbMotsTotal % nbJoueurs;
+            const playerWords = baseWords + (i < extraWords ? 1 : 0);
+            
+            if (motsJoueurs[i] < playerWords) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // Fonction pour mettre à jour le compteur de mots
     function updateWordsCount(playerIndex, count) {
         const button = document.querySelector(`a[href*="mots_joueur/${playerIndex}"]`);
@@ -440,16 +548,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const baseWords = Math.floor(nbMotsTotal / nbJoueurs);
             const extraWords = nbMotsTotal % nbJoueurs;
             const playerWords = baseWords + (playerIndex < extraWords ? 1 : 0);
-            button.querySelector('.words-count').textContent = `${count}/${playerWords}`;
+            const wordCount = typeof count === 'number' ? count : 0;
+            button.querySelector('.words-count').textContent = `${wordCount}/${playerWords}`;
+            
+            // Ajouter ou retirer la classe incomplete selon si tous les mots sont remplis
+            if (wordCount < playerWords) {
+                button.classList.add('incomplete');
+            } else {
+                button.classList.remove('incomplete');
+            }
+            
+            // Vérifier si tous les mots sont remplis après chaque mise à jour
+            startButton.disabled = !checkAllWordsFilled() || !checkDuplicateNames();
         }
     }
 
     // Mettre à jour les compteurs au chargement
-    {% if session.get('mots_joueurs') %}
-        {% for i in range(session['nb_joueurs']) %}
-            updateWordsCount({{ i }}, {{ session['mots_joueurs'][i]|length }});
-        {% endfor %}
-    {% endif %}
+    const motsJoueurs = [{% for i in range(session['nb_joueurs']) %}{{ session.get('mots_joueurs', [0] * session['nb_joueurs'])[i] }}{% if not loop.last %}, {% endif %}{% endfor %}];
+    motsJoueurs.forEach((count, index) => {
+        updateWordsCount(index, count);
+    });
+
+    // Vérifier l'état initial du bouton
+    startButton.disabled = !checkAllWordsFilled() || !checkDuplicateNames();
 });
 </script>
 {% endblock %} 

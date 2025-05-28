@@ -5,6 +5,250 @@ from app.models import db, Word, Player
 import random
 from datetime import datetime
 
+INITIAL_WORDS = [
+    # Habitat et Maison
+    {"word": "maison", "difficulty": 1, "category": "habitat"},
+    {"word": "appartement", "difficulty": 1, "category": "habitat"},
+    {"word": "immeuble", "difficulty": 1, "category": "habitat"},
+    {"word": "château", "difficulty": 2, "category": "habitat"},
+    {"word": "cabane", "difficulty": 1, "category": "habitat"},
+    {"word": "tente", "difficulty": 1, "category": "habitat"},
+    {"word": "igloo", "difficulty": 2, "category": "habitat"},
+    {"word": "gratte-ciel", "difficulty": 2, "category": "habitat"},
+    {"word": "fenêtre", "difficulty": 1, "category": "habitat"},
+    {"word": "porte", "difficulty": 1, "category": "habitat"},
+    {"word": "toit", "difficulty": 1, "category": "habitat"},
+    {"word": "mur", "difficulty": 1, "category": "habitat"},
+    {"word": "plafond", "difficulty": 1, "category": "habitat"},
+    {"word": "sol", "difficulty": 1, "category": "habitat"},
+    {"word": "escalier", "difficulty": 1, "category": "habitat"},
+    {"word": "ascenseur", "difficulty": 1, "category": "habitat"},
+    {"word": "balcon", "difficulty": 1, "category": "habitat"},
+    {"word": "terrasse", "difficulty": 1, "category": "habitat"},
+    {"word": "jardin", "difficulty": 1, "category": "habitat"},
+    {"word": "garage", "difficulty": 1, "category": "habitat"},
+
+    # Mobilier
+    {"word": "table", "difficulty": 1, "category": "mobilier"},
+    {"word": "chaise", "difficulty": 1, "category": "mobilier"},
+    {"word": "canapé", "difficulty": 1, "category": "mobilier"},
+    {"word": "lit", "difficulty": 1, "category": "mobilier"},
+    {"word": "armoire", "difficulty": 1, "category": "mobilier"},
+    {"word": "commode", "difficulty": 1, "category": "mobilier"},
+    {"word": "bureau", "difficulty": 1, "category": "mobilier"},
+    {"word": "étagère", "difficulty": 1, "category": "mobilier"},
+    {"word": "fauteuil", "difficulty": 1, "category": "mobilier"},
+    {"word": "tabouret", "difficulty": 1, "category": "mobilier"},
+    {"word": "buffet", "difficulty": 1, "category": "mobilier"},
+    {"word": "bibliothèque", "difficulty": 2, "category": "mobilier"},
+    {"word": "coiffeuse", "difficulty": 2, "category": "mobilier"},
+    {"word": "meuble", "difficulty": 1, "category": "mobilier"},
+    {"word": "lampe", "difficulty": 1, "category": "mobilier"},
+    {"word": "miroir", "difficulty": 1, "category": "mobilier"},
+    {"word": "tapis", "difficulty": 1, "category": "mobilier"},
+    {"word": "rideau", "difficulty": 1, "category": "mobilier"},
+    {"word": "oreiller", "difficulty": 1, "category": "mobilier"},
+    {"word": "couverture", "difficulty": 1, "category": "mobilier"},
+
+    # Transport
+    {"word": "voiture", "difficulty": 1, "category": "transport"},
+    {"word": "bus", "difficulty": 1, "category": "transport"},
+    {"word": "train", "difficulty": 1, "category": "transport"},
+    {"word": "avion", "difficulty": 1, "category": "transport"},
+    {"word": "vélo", "difficulty": 1, "category": "transport"},
+    {"word": "moto", "difficulty": 1, "category": "transport"},
+    {"word": "camion", "difficulty": 1, "category": "transport"},
+    {"word": "taxi", "difficulty": 1, "category": "transport"},
+    {"word": "métro", "difficulty": 1, "category": "transport"},
+    {"word": "tramway", "difficulty": 1, "category": "transport"},
+    {"word": "bateau", "difficulty": 1, "category": "transport"},
+    {"word": "hélicoptère", "difficulty": 2, "category": "transport"},
+    {"word": "fusée", "difficulty": 2, "category": "transport"},
+    {"word": "sous-marin", "difficulty": 2, "category": "transport"},
+    {"word": "montgolfière", "difficulty": 2, "category": "transport"},
+    {"word": "téléphérique", "difficulty": 2, "category": "transport"},
+    {"word": "trampoline", "difficulty": 2, "category": "transport"},
+    {"word": "trottinette", "difficulty": 2, "category": "transport"},
+    {"word": "roller", "difficulty": 1, "category": "transport"},
+    {"word": "skateboard", "difficulty": 2, "category": "transport"},
+
+    # Technologie
+    {"word": "ordinateur", "difficulty": 1, "category": "technologie"},
+    {"word": "téléphone", "difficulty": 1, "category": "technologie"},
+    {"word": "tablette", "difficulty": 1, "category": "technologie"},
+    {"word": "écran", "difficulty": 1, "category": "technologie"},
+    {"word": "clavier", "difficulty": 1, "category": "technologie"},
+    {"word": "souris", "difficulty": 1, "category": "technologie"},
+    {"word": "imprimante", "difficulty": 1, "category": "technologie"},
+    {"word": "scanner", "difficulty": 1, "category": "technologie"},
+    {"word": "camera", "difficulty": 1, "category": "technologie"},
+    {"word": "microphone", "difficulty": 2, "category": "technologie"},
+    {"word": "enceinte", "difficulty": 1, "category": "technologie"},
+    {"word": "casque", "difficulty": 1, "category": "technologie"},
+    {"word": "console", "difficulty": 1, "category": "technologie"},
+    {"word": "manette", "difficulty": 1, "category": "technologie"},
+    {"word": "drone", "difficulty": 1, "category": "technologie"},
+    {"word": "robot", "difficulty": 1, "category": "technologie"},
+    {"word": "satellite", "difficulty": 2, "category": "technologie"},
+    {"word": "télévision", "difficulty": 1, "category": "technologie"},
+    {"word": "radio", "difficulty": 1, "category": "technologie"},
+    {"word": "réfrigérateur", "difficulty": 2, "category": "technologie"},
+
+    # Nature
+    {"word": "arbre", "difficulty": 1, "category": "nature"},
+    {"word": "fleur", "difficulty": 1, "category": "nature"},
+    {"word": "herbe", "difficulty": 1, "category": "nature"},
+    {"word": "buisson", "difficulty": 1, "category": "nature"},
+    {"word": "feuille", "difficulty": 1, "category": "nature"},
+    {"word": "branche", "difficulty": 1, "category": "nature"},
+    {"word": "tronc", "difficulty": 1, "category": "nature"},
+    {"word": "racine", "difficulty": 1, "category": "nature"},
+    {"word": "graine", "difficulty": 1, "category": "nature"},
+    {"word": "fruit", "difficulty": 1, "category": "nature"},
+    {"word": "légume", "difficulty": 1, "category": "nature"},
+    {"word": "champignon", "difficulty": 2, "category": "nature"},
+    {"word": "mousse", "difficulty": 1, "category": "nature"},
+    {"word": "algue", "difficulty": 1, "category": "nature"},
+    {"word": "cactus", "difficulty": 1, "category": "nature"},
+    {"word": "rose", "difficulty": 1, "category": "nature"},
+    {"word": "tulipe", "difficulty": 1, "category": "nature"},
+    {"word": "pissenlit", "difficulty": 2, "category": "nature"},
+    {"word": "tournesol", "difficulty": 2, "category": "nature"},
+    {"word": "coquelicot", "difficulty": 2, "category": "nature"},
+
+    # Météo
+    {"word": "soleil", "difficulty": 1, "category": "météo"},
+    {"word": "lune", "difficulty": 1, "category": "météo"},
+    {"word": "étoile", "difficulty": 1, "category": "météo"},
+    {"word": "nuage", "difficulty": 1, "category": "météo"},
+    {"word": "pluie", "difficulty": 1, "category": "météo"},
+    {"word": "neige", "difficulty": 1, "category": "météo"},
+    {"word": "vent", "difficulty": 1, "category": "météo"},
+    {"word": "orage", "difficulty": 1, "category": "météo"},
+    {"word": "tonnerre", "difficulty": 1, "category": "météo"},
+    {"word": "éclair", "difficulty": 1, "category": "météo"},
+    {"word": "arc-en-ciel", "difficulty": 2, "category": "météo"},
+    {"word": "brouillard", "difficulty": 2, "category": "météo"},
+    {"word": "grêle", "difficulty": 1, "category": "météo"},
+    {"word": "tempête", "difficulty": 1, "category": "météo"},
+    {"word": "ouragan", "difficulty": 2, "category": "météo"},
+    {"word": "tornade", "difficulty": 2, "category": "météo"},
+    {"word": "tsunami", "difficulty": 2, "category": "météo"},
+    {"word": "avalanche", "difficulty": 2, "category": "météo"},
+    {"word": "inondation", "difficulty": 2, "category": "météo"},
+    {"word": "sécheresse", "difficulty": 2, "category": "météo"},
+
+    # Animaux
+    {"word": "chien", "difficulty": 1, "category": "animaux"},
+    {"word": "chat", "difficulty": 1, "category": "animaux"},
+    {"word": "oiseau", "difficulty": 1, "category": "animaux"},
+    {"word": "poisson", "difficulty": 1, "category": "animaux"},
+    {"word": "lapin", "difficulty": 1, "category": "animaux"},
+    {"word": "hamster", "difficulty": 1, "category": "animaux"},
+    {"word": "souris", "difficulty": 1, "category": "animaux"},
+    {"word": "rat", "difficulty": 1, "category": "animaux"},
+    {"word": "cochon", "difficulty": 1, "category": "animaux"},
+    {"word": "vache", "difficulty": 1, "category": "animaux"},
+    {"word": "mouton", "difficulty": 1, "category": "animaux"},
+    {"word": "chèvre", "difficulty": 1, "category": "animaux"},
+    {"word": "cheval", "difficulty": 1, "category": "animaux"},
+    {"word": "âne", "difficulty": 1, "category": "animaux"},
+    {"word": "poule", "difficulty": 1, "category": "animaux"},
+    {"word": "coq", "difficulty": 1, "category": "animaux"},
+    {"word": "canard", "difficulty": 1, "category": "animaux"},
+    {"word": "oie", "difficulty": 1, "category": "animaux"},
+    {"word": "dinde", "difficulty": 1, "category": "animaux"},
+    {"word": "pigeon", "difficulty": 1, "category": "animaux"},
+
+    # Nourriture
+    {"word": "pain", "difficulty": 1, "category": "nourriture"},
+    {"word": "fromage", "difficulty": 1, "category": "nourriture"},
+    {"word": "jambon", "difficulty": 1, "category": "nourriture"},
+    {"word": "saucisse", "difficulty": 1, "category": "nourriture"},
+    {"word": "poulet", "difficulty": 1, "category": "nourriture"},
+    {"word": "poisson", "difficulty": 1, "category": "nourriture"},
+    {"word": "œuf", "difficulty": 1, "category": "nourriture"},
+    {"word": "lait", "difficulty": 1, "category": "nourriture"},
+    {"word": "beurre", "difficulty": 1, "category": "nourriture"},
+    {"word": "yaourt", "difficulty": 1, "category": "nourriture"},
+    {"word": "crème", "difficulty": 1, "category": "nourriture"},
+    {"word": "sucre", "difficulty": 1, "category": "nourriture"},
+    {"word": "sel", "difficulty": 1, "category": "nourriture"},
+    {"word": "poivre", "difficulty": 1, "category": "nourriture"},
+    {"word": "huile", "difficulty": 1, "category": "nourriture"},
+    {"word": "vinaigre", "difficulty": 1, "category": "nourriture"},
+    {"word": "moutarde", "difficulty": 1, "category": "nourriture"},
+    {"word": "ketchup", "difficulty": 1, "category": "nourriture"},
+    {"word": "mayonnaise", "difficulty": 2, "category": "nourriture"},
+    {"word": "sauce", "difficulty": 1, "category": "nourriture"},
+
+    # Boissons
+    {"word": "eau", "difficulty": 1, "category": "boissons"},
+    {"word": "café", "difficulty": 1, "category": "boissons"},
+    {"word": "thé", "difficulty": 1, "category": "boissons"},
+    {"word": "jus", "difficulty": 1, "category": "boissons"},
+    {"word": "soda", "difficulty": 1, "category": "boissons"},
+    {"word": "limonade", "difficulty": 1, "category": "boissons"},
+    {"word": "bière", "difficulty": 1, "category": "boissons"},
+    {"word": "vin", "difficulty": 1, "category": "boissons"},
+    {"word": "champagne", "difficulty": 2, "category": "boissons"},
+    {"word": "whisky", "difficulty": 1, "category": "boissons"},
+    {"word": "vodka", "difficulty": 1, "category": "boissons"},
+    {"word": "rhum", "difficulty": 1, "category": "boissons"},
+    {"word": "cidre", "difficulty": 1, "category": "boissons"},
+    {"word": "lait", "difficulty": 1, "category": "boissons"},
+    {"word": "chocolat", "difficulty": 1, "category": "boissons"},
+    {"word": "smoothie", "difficulty": 2, "category": "boissons"},
+    {"word": "milkshake", "difficulty": 2, "category": "boissons"},
+    {"word": "cocktail", "difficulty": 2, "category": "boissons"},
+    {"word": "sirop", "difficulty": 1, "category": "boissons"},
+    {"word": "infusion", "difficulty": 2, "category": "boissons"},
+
+    # Sports
+    {"word": "football", "difficulty": 1, "category": "sports"},
+    {"word": "basketball", "difficulty": 1, "category": "sports"},
+    {"word": "tennis", "difficulty": 1, "category": "sports"},
+    {"word": "rugby", "difficulty": 1, "category": "sports"},
+    {"word": "volley", "difficulty": 1, "category": "sports"},
+    {"word": "handball", "difficulty": 1, "category": "sports"},
+    {"word": "natation", "difficulty": 1, "category": "sports"},
+    {"word": "course", "difficulty": 1, "category": "sports"},
+    {"word": "saut", "difficulty": 1, "category": "sports"},
+    {"word": "lancer", "difficulty": 1, "category": "sports"},
+    {"word": "boxe", "difficulty": 1, "category": "sports"},
+    {"word": "judo", "difficulty": 1, "category": "sports"},
+    {"word": "karaté", "difficulty": 1, "category": "sports"},
+    {"word": "escrime", "difficulty": 2, "category": "sports"},
+    {"word": "golf", "difficulty": 1, "category": "sports"},
+    {"word": "ski", "difficulty": 1, "category": "sports"},
+    {"word": "patinage", "difficulty": 2, "category": "sports"},
+    {"word": "cyclisme", "difficulty": 2, "category": "sports"},
+    {"word": "marche", "difficulty": 1, "category": "sports"},
+    {"word": "danse", "difficulty": 1, "category": "sports"},
+
+    # Instruments de musique
+    {"word": "piano", "difficulty": 1, "category": "musique"},
+    {"word": "guitare", "difficulty": 1, "category": "musique"},
+    {"word": "violon", "difficulty": 1, "category": "musique"},
+    {"word": "flûte", "difficulty": 1, "category": "musique"},
+    {"word": "trompette", "difficulty": 1, "category": "musique"},
+    {"word": "saxophone", "difficulty": 2, "category": "musique"},
+    {"word": "batterie", "difficulty": 1, "category": "musique"},
+    {"word": "tambour", "difficulty": 1, "category": "musique"},
+    {"word": "accordéon", "difficulty": 2, "category": "musique"},
+    {"word": "harpe", "difficulty": 1, "category": "musique"},
+    {"word": "clarinette", "difficulty": 2, "category": "musique"},
+    {"word": "trombone", "difficulty": 2, "category": "musique"},
+    {"word": "tuba", "difficulty": 1, "category": "musique"},
+    {"word": "triangle", "difficulty": 1, "category": "musique"},
+    {"word": "cymbale", "difficulty": 1, "category": "musique"},
+    {"word": "maracas", "difficulty": 1, "category": "musique"},
+    {"word": "castagnettes", "difficulty": 2, "category": "musique"},
+    {"word": "tambourin", "difficulty": 2, "category": "musique"},
+    {"word": "xylophone", "difficulty": 2, "category": "musique"},
+    {"word": "harmonica", "difficulty": 2, "category": "musique"}
+]
+
 def validate_game_settings(nb_equipes, nb_joueurs, choix_mots, choix_equipe, nb_mots_total, duree_manche, mot_reserve):
     """Valide les paramètres de la partie."""
     if not (2 <= nb_equipes <= 5):
@@ -23,48 +267,7 @@ def validate_game_settings(nb_equipes, nb_joueurs, choix_mots, choix_equipe, nb_
         raise BadRequest("Choix de mot en réserve invalide")
 
 # Liste initiale de mots pour peupler la base de données
-INITIAL_WORDS = [
-    {"word": "maison", "difficulty": 1, "category": "habitat"},
-    {"word": "voiture", "difficulty": 1, "category": "transport"},
-    {"word": "ordinateur", "difficulty": 2, "category": "technologie"},
-    {"word": "téléphone", "difficulty": 1, "category": "technologie"},
-    {"word": "livre", "difficulty": 1, "category": "culture"},
-    {"word": "table", "difficulty": 1, "category": "mobilier"},
-    {"word": "chaise", "difficulty": 1, "category": "mobilier"},
-    {"word": "fenêtre", "difficulty": 1, "category": "habitat"},
-    {"word": "porte", "difficulty": 1, "category": "habitat"},
-    {"word": "arbre", "difficulty": 1, "category": "nature"},
-    {"word": "fleur", "difficulty": 1, "category": "nature"},
-    {"word": "soleil", "difficulty": 1, "category": "nature"},
-    {"word": "lune", "difficulty": 1, "category": "nature"},
-    {"word": "étoile", "difficulty": 1, "category": "nature"},
-    {"word": "nuage", "difficulty": 1, "category": "nature"},
-    {"word": "pluie", "difficulty": 1, "category": "nature"},
-    {"word": "neige", "difficulty": 1, "category": "nature"},
-    {"word": "vent", "difficulty": 1, "category": "nature"},
-    {"word": "montagne", "difficulty": 2, "category": "nature"},
-    {"word": "rivière", "difficulty": 2, "category": "nature"},
-    {"word": "océan", "difficulty": 2, "category": "nature"},
-    {"word": "plage", "difficulty": 2, "category": "nature"},
-    {"word": "forêt", "difficulty": 2, "category": "nature"},
-    {"word": "jardin", "difficulty": 2, "category": "nature"},
-    {"word": "animal", "difficulty": 1, "category": "faune"},
-    {"word": "chien", "difficulty": 1, "category": "faune"},
-    {"word": "chat", "difficulty": 1, "category": "faune"},
-    {"word": "oiseau", "difficulty": 2, "category": "faune"},
-    {"word": "poisson", "difficulty": 2, "category": "faune"},
-    {"word": "fruit", "difficulty": 1, "category": "nourriture"},
-    {"word": "légume", "difficulty": 2, "category": "nourriture"},
-    {"word": "pain", "difficulty": 1, "category": "nourriture"},
-    {"word": "eau", "difficulty": 1, "category": "nourriture"},
-    {"word": "café", "difficulty": 1, "category": "nourriture"},
-    {"word": "thé", "difficulty": 1, "category": "nourriture"},
-    {"word": "vin", "difficulty": 1, "category": "nourriture"},
-    {"word": "bière", "difficulty": 1, "category": "nourriture"},
-    {"word": "sucre", "difficulty": 1, "category": "nourriture"},
-    {"word": "sel", "difficulty": 1, "category": "nourriture"},
-    {"word": "poivre", "difficulty": 2, "category": "nourriture"}
-]
+
 
 def init_db():
     """Initialise la base de données avec les mots par défaut."""
@@ -99,6 +302,31 @@ def configurer_partie():
             validate_game_settings(nb_equipes, nb_joueurs, choix_mots, choix_equipe, 
                                  nb_mots_total, duree_manche, mot_reserve)
             
+            # Si le nombre de mots total a changé, ajuster les mots des joueurs
+            if 'nb_mots_total' in session and session['nb_mots_total'] != nb_mots_total:
+                game_session = session.get('game_session')
+                if game_session:
+                    # Calculer la nouvelle distribution des mots
+                    new_distribution = calculate_words_distribution(nb_joueurs, nb_mots_total)
+                    
+                    # Récupérer tous les joueurs de la session
+                    players = Player.query.filter_by(game_session=game_session).all()
+                    
+                    # Ajuster les mots pour chaque joueur
+                    for i, player in enumerate(players):
+                        if i < len(new_distribution):
+                            current_words = player.words.all()
+                            if len(current_words) > new_distribution[i]:
+                                # Garder seulement le nombre requis de mots
+                                player.words = current_words[:new_distribution[i]]
+                                db.session.commit()
+                                
+                                # Mettre à jour le compteur dans la session
+                                if 'mots_joueurs' not in session:
+                                    session['mots_joueurs'] = [0] * nb_joueurs
+                                session['mots_joueurs'][i] = new_distribution[i]
+                                session.modified = True
+            
             # Stocker en session
             session['nb_equipes'] = nb_equipes
             session['nb_joueurs'] = nb_joueurs
@@ -108,11 +336,8 @@ def configurer_partie():
             session['duree_manche'] = duree_manche
             session['mot_reserve'] = mot_reserve
             
-            # Redirection selon le choix des mots
-            if choix_mots == 'personnalise':
-                return redirect(url_for('main.choix_mots_personnalise'))
-            else:
-                return redirect(url_for('main.choix_mots_aleatoire'))
+            # Redirection vers la page de saisie des noms
+            return redirect(url_for('main.choix_mots_aleatoire'))
             
         except (ValueError, BadRequest) as e:
             flash(str(e), 'error')
@@ -128,6 +353,16 @@ def choix_mots_aleatoire():
         flash('Configuration de partie invalide. Veuillez recommencer.', 'error')
         return redirect(url_for('main.configurer_partie'))
 
+    # Initialiser le tableau des mots si nécessaire
+    if 'mots_joueurs' not in session:
+        session['mots_joueurs'] = [0] * session['nb_joueurs']
+        session.modified = True
+
+    # Initialiser le stockage temporaire si besoin
+    if 'pending_words' not in session:
+        session['pending_words'] = {}
+        session.modified = True
+
     # Vérifier que les valeurs sont valides
     try:
         nb_mots_total = int(session['nb_mots_total'])
@@ -142,30 +377,57 @@ def choix_mots_aleatoire():
         noms_joueurs = []
         for i in range(session['nb_joueurs']):
             nom = request.form.get(f'joueur_{i}', '').strip()
-            
             # Validation du nom
             if not nom:
                 flash('Tous les joueurs doivent avoir un nom', 'error')
                 return render_template('choix_mots_aleatoire.html'), 400
-            
-            # Limiter la longueur du nom
             if len(nom) > 20:
                 flash('Les noms ne doivent pas dépasser 20 caractères', 'error')
                 return render_template('choix_mots_aleatoire.html'), 400
-            
-            # Nettoyer le nom (échapper les caractères HTML)
             nom = nom.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             noms_joueurs.append(nom)
-        
         # Vérifier les doublons
         if len(set(noms_joueurs)) != len(noms_joueurs):
             flash('Des joueurs ont le même nom. Veuillez modifier les pseudonymes identiques.', 'error')
             return render_template('choix_mots_aleatoire.html'), 400
-        
         # Stocker les noms en session
         session['noms_joueurs'] = noms_joueurs
         session.modified = True
-        
+
+        # Transférer les mots temporaires si un nom réel est donné
+        game_session = session.get('game_session')
+        if not game_session:
+            game_session = str(datetime.utcnow().timestamp())
+            session['game_session'] = game_session
+        nb_joueurs = session['nb_joueurs']
+        nb_mots_total = session['nb_mots_total']
+        mots_distribution = calculate_words_distribution(nb_joueurs, nb_mots_total)
+        for i, nom in enumerate(noms_joueurs):
+            nom_defaut = f"Joueur {i + 1}"
+            if nom and nom != nom_defaut:
+                pending = session['pending_words'].pop(str(i), None)
+                if pending:
+                    player = Player.query.filter_by(name=nom, game_session=game_session).first()
+                    if not player:
+                        player = Player(name=nom, game_session=game_session)
+                        db.session.add(player)
+                        db.session.commit()
+                    mots_requis = mots_distribution[i]
+                    new_mots = []
+                    for mot in pending:
+                        word = Word.query.filter_by(word=mot).first()
+                        if not word:
+                            word = Word(word=mot, is_custom=True)
+                            db.session.add(word)
+                            db.session.commit()
+                        new_mots.append(word)
+                    player.words = new_mots[:mots_requis]
+                    db.session.commit()
+                    if 'mots_joueurs' not in session:
+                        session['mots_joueurs'] = [0] * nb_joueurs
+                    session['mots_joueurs'][i] = len(new_mots[:mots_requis])
+                    session.modified = True
+
         # Rediriger vers la page de jeu
         return redirect(url_for('main.play'))
     
@@ -243,65 +505,123 @@ def mots_joueur(player_index):
     
     # Récupérer le nom du joueur
     player_name = session.get('noms_joueurs', [''] * session['nb_joueurs'])[player_index]
+    nom_defaut = f"Joueur {player_index + 1}"
     
     # Calculer la répartition des mots
     nb_joueurs = session.get('nb_joueurs', 0)
     nb_mots_total = session.get('nb_mots_total', 50)
     mots_distribution = calculate_words_distribution(nb_joueurs, nb_mots_total)
-    
-    # Créer ou récupérer le joueur dans la base de données
+    mots_requis = mots_distribution[player_index]
+
+    # Initialiser le stockage temporaire si besoin
+    if 'pending_words' not in session:
+        session['pending_words'] = {}
+        session.modified = True
+
+    # Si le nom est vide ou par défaut, on ne crée pas de joueur en base
+    if not player_name or player_name == nom_defaut:
+        if request.method == 'POST':
+            # Stocker les mots temporairement
+            new_mots = []
+            for i in range(mots_requis):
+                mot = request.form.get(f'mot_{i}', '').strip()
+                if mot:
+                    if len(mot) > 50:
+                        flash('Les mots ne doivent pas dépasser 50 caractères', 'error')
+                        return render_template('mots_joueur.html', 
+                                               player_index=player_index,
+                                               player_name=player_name,
+                                               mots=[{'word': m} for m in new_mots],
+                                               nb_mots_total=mots_requis), 400
+                    mot = mot.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                    new_mots.append(mot)
+            session['pending_words'][str(player_index)] = new_mots
+            if 'mots_joueurs' not in session:
+                session['mots_joueurs'] = [0] * session['nb_joueurs']
+            session['mots_joueurs'][player_index] = len(new_mots)
+            session.modified = True
+            flash(f"Les mots ont été enregistrés temporairement pour {nom_defaut}", 'success')
+            return redirect(url_for('main.choix_mots_aleatoire'))
+        # Affichage GET : pré-remplir avec les mots temporaires si présents
+        mots = [{'word': m} for m in session['pending_words'].get(str(player_index), [])]
+        return render_template('mots_joueur.html', 
+                              player_index=player_index,
+                              player_name=player_name,
+                              mots=mots,
+                              nb_mots_total=mots_requis)
+
+    # Sinon, nom réel : on transfère les mots temporaires s'ils existent
     game_session = session.get('game_session')
     if not game_session:
         game_session = str(datetime.utcnow().timestamp())
         session['game_session'] = game_session
-    
     player = Player.query.filter_by(name=player_name, game_session=game_session).first()
     if not player:
         player = Player(name=player_name, game_session=game_session)
         db.session.add(player)
         db.session.commit()
-
-    if request.method == 'POST':
-        # Récupérer et nettoyer les mots
-        new_mots = []
-        for i in range(mots_distribution[player_index]):
-            mot = request.form.get(f'mot_{i}', '').strip()
-            
-            # Validation du mot
-            if mot:
-                # Limiter la longueur du mot
-                if len(mot) > 50:
-                    flash('Les mots ne doivent pas dépasser 50 caractères', 'error')
-                    return render_template('mots_joueur.html', 
-                                        player_index=player_index,
-                                        player_name=player_name,
-                                        mots=player.words.all(),
-                                        nb_mots_total=mots_distribution[player_index]), 400
-                
-                # Nettoyer le mot (échapper les caractères HTML)
-                mot = mot.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                
-                # Créer ou récupérer le mot dans la base de données
+        # Transfert des mots temporaires si présents
+        pending = session['pending_words'].pop(str(player_index), None)
+        if pending:
+            new_mots = []
+            for mot in pending:
                 word = Word.query.filter_by(word=mot).first()
                 if not word:
                     word = Word(word=mot, is_custom=True)
                     db.session.add(word)
                     db.session.commit()
-                
                 new_mots.append(word)
-        
-        # Mettre à jour les mots du joueur
+            player.words = new_mots[:mots_requis]
+            db.session.commit()
+            if 'mots_joueurs' not in session:
+                session['mots_joueurs'] = [0] * session['nb_joueurs']
+            session['mots_joueurs'][player_index] = len(new_mots[:mots_requis])
+            session.modified = True
+
+    if request.method == 'POST':
+        # Récupérer et nettoyer les mots
+        new_mots = []
+        for i in range(mots_requis):
+            mot = request.form.get(f'mot_{i}', '').strip()
+            if mot:
+                if len(mot) > 50:
+                    flash('Les mots ne doivent pas dépasser 50 caractères', 'error')
+                    return render_template('mots_joueur.html', 
+                                           player_index=player_index,
+                                           player_name=player_name,
+                                           mots=player.words.all(),
+                                           nb_mots_total=mots_requis), 400
+                mot = mot.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                word = Word.query.filter_by(word=mot).first()
+                if not word:
+                    word = Word(word=mot, is_custom=True)
+                    db.session.add(word)
+                    db.session.commit()
+                new_mots.append(word)
+        new_mots = new_mots[:mots_requis]
         player.words = new_mots
         db.session.commit()
-        
-        flash('Les mots ont été enregistrés avec succès', 'success')
+        if 'mots_joueurs' not in session:
+            session['mots_joueurs'] = [0] * session['nb_joueurs']
+        session['mots_joueurs'][player_index] = len(new_mots)
+        session.modified = True
+        flash(f'Les mots de {player_name} ont été enregistrés avec succès', 'success')
         return redirect(url_for('main.choix_mots_aleatoire'))
-    
+
+    # Ajuster le nombre de mots stockés si nécessaire
+    current_words = player.words.all()
+    if len(current_words) > mots_requis:
+        player.words = current_words[:mots_requis]
+        db.session.commit()
+        if 'mots_joueurs' not in session:
+            session['mots_joueurs'] = [0] * session['nb_joueurs']
+        session['mots_joueurs'][player_index] = mots_requis
+        session.modified = True
     return render_template('mots_joueur.html', 
                          player_index=player_index,
                          player_name=player_name,
                          mots=player.words.all(),
-                         nb_mots_total=mots_distribution[player_index])
+                         nb_mots_total=mots_requis)
 
 @bp.route('/generate_random_word', methods=['POST'])
 def generate_random_word():
@@ -312,7 +632,10 @@ def generate_random_word():
     # Récupérer la session de jeu
     game_session = session.get('game_session')
     if not game_session:
-        return {'error': 'Session de jeu invalide'}, 400
+        # Initialiser la session de jeu si elle n'existe pas
+        game_session = str(datetime.utcnow().timestamp())
+        session['game_session'] = game_session
+        session.modified = True
     
     # Récupérer tous les joueurs de la session
     players = Player.query.filter_by(game_session=game_session).all()
@@ -332,4 +655,76 @@ def generate_random_word():
     if word:
         return {'word': word.word}, 200
     else:
-        return {'error': 'Aucun mot disponible'}, 404 
+        return {'error': 'Aucun mot disponible'}, 404
+
+@bp.route('/reset_game', methods=['POST'])
+def reset_game():
+    try:
+        # Récupérer la session de jeu actuelle
+        game_session = session.get('game_session')
+        
+        if game_session:
+            # Supprimer tous les joueurs et leurs mots associés de la base de données
+            players = Player.query.filter_by(game_session=game_session).all()
+            for player in players:
+                # Supprimer les mots personnalisés créés par ce joueur
+                for word in player.words:
+                    if word.is_custom:
+                        db.session.delete(word)
+                # Supprimer le joueur
+                db.session.delete(player)
+            
+            # Commit les changements dans la base de données
+            db.session.commit()
+        
+        # Nettoyer toutes les variables de session
+        session.clear()
+        
+        # Réinitialiser les paramètres par défaut
+        session['nb_equipes'] = 2
+        session['nb_joueurs'] = 4
+        session['choix_mots'] = 'aleatoire'
+        session['choix_equipe'] = 'personnalise'
+        session['nb_mots_total'] = 50
+        session['duree_manche'] = 30
+        session['mot_reserve'] = 'oui'
+        
+        return {'status': 'success'}, 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return {'status': 'error', 'message': str(e)}, 500
+
+@bp.route('/delete_player_words/<int:player_index>', methods=['POST'])
+def delete_player_words(player_index):
+    try:
+        # Vérifier que l'index est valide
+        if not isinstance(player_index, int) or player_index < 0 or player_index >= session.get('nb_joueurs', 0):
+            return {'status': 'error', 'message': 'Index de joueur invalide'}, 400
+        
+        # Récupérer le nom du joueur
+        player_name = session.get('noms_joueurs', [''] * session['nb_joueurs'])[player_index]
+        
+        # Récupérer le joueur dans la base de données
+        game_session = session.get('game_session')
+        if game_session:
+            player = Player.query.filter_by(name=player_name, game_session=game_session).first()
+            if player:
+                # Supprimer les mots personnalisés créés par ce joueur
+                for word in player.words:
+                    if word.is_custom:
+                        db.session.delete(word)
+                # Vider la liste des mots du joueur
+                player.words = []
+                db.session.commit()
+                
+                # Mettre à jour le compteur dans la session
+                if 'mots_joueurs' in session:
+                    session['mots_joueurs'][player_index] = 0
+                    session.modified = True
+        
+        return {'status': 'success'}, 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return {'status': 'error', 'message': str(e)}, 500 
