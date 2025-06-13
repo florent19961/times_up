@@ -340,7 +340,31 @@ function saveAdvancedSettings() {
     document.getElementById('hidden-duree-manche').value = advancedSettings.dureeManche;
     document.getElementById('choix-reserve').value = advancedSettings.motReserve;
     
-    closeModal();
+    // Envoyer les paramètres au serveur
+    fetch('{{ url_for("main.save_advanced_settings") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            choix_equipe: advancedSettings.choixEquipe,
+            nb_mots_total: advancedSettings.nbMotsTotal,
+            duree_manche: advancedSettings.dureeManche,
+            mot_reserve: advancedSettings.motReserve
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            closeModal();
+        } else {
+            alert('Erreur lors de la sauvegarde des paramètres');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors de la sauvegarde des paramètres');
+    });
 }
 
 function loadAdvancedSettings() {

@@ -285,7 +285,10 @@ def index():
 
 @bp.route('/configurer_partie', methods=['GET', 'POST'])
 def configurer_partie():
+    print("je viens ici")
+    print(session)
     if request.method == 'POST':
+        print("et la")
         try:
             # Paramètres de base
             nb_equipes = int(request.form.get('nb-equipes', 2))
@@ -302,30 +305,34 @@ def configurer_partie():
             validate_game_settings(nb_equipes, nb_joueurs, choix_mots, choix_equipe, 
                                  nb_mots_total, duree_manche, mot_reserve)
             
-            # Si le nombre de mots total a changé, ajuster les mots des joueurs
-            if 'nb_mots_total' in session and session['nb_mots_total'] != nb_mots_total:
-                game_session = session.get('game_session')
-                if game_session:
-                    # Calculer la nouvelle distribution des mots
-                    new_distribution = calculate_words_distribution(nb_joueurs, nb_mots_total)
+            #print(session, 'au revoir')# Si le nombre de mots total a changé, ajuster les mots des joueurs
+            # if 'nb_mots_total' in session and session['nb_mots_total'] != nb_mots_total:
+            #     print(session, 'QUOIII')
+            #     game_session = session.get('game_session')
+            #     if game_session:
+            #         #< nb_mots_joueurs fait sauter la session
+            #         # Calculer la nouvelle distribution des mots
+            #         new_distribution = calculate_words_distribution(nb_joueurs, nb_mots_total)
                     
-                    # Récupérer tous les joueurs de la session
-                    players = Player.query.filter_by(game_session=game_session).all()
+            #         # Récupérer tous les joueurs de la session
+            #         players = Player.query.filter_by(game_session=game_session).all()
                     
-                    # Ajuster les mots pour chaque joueur
-                    for i, player in enumerate(players):
-                        if i < len(new_distribution):
-                            current_words = player.words.all()
-                            if len(current_words) > new_distribution[i]:
-                                # Garder seulement le nombre requis de mots
-                                player.words = current_words[:new_distribution[i]]
-                                db.session.commit()
+            #         # Ajuster les mots pour chaque joueur
+            #         for i, player in enumerate(players):
+
+            #             if i < len(new_distribution):
+            #                 current_words = player.words.all()
+            #                 print(player.words.all())
+            #                 if len(current_words) > new_distribution[i]:
+            #                     # Garder seulement le nombre requis de mots
+            #                     player.words = current_words[:new_distribution[i]]
+            #                     db.session.commit()
                                 
-                                # Mettre à jour le compteur dans la session
-                                if 'mots_joueurs' not in session:
-                                    session['mots_joueurs'] = [0] * nb_joueurs
-                                session['mots_joueurs'][i] = new_distribution[i]
-                                session.modified = True
+            #                     # Mettre à jour le compteur dans la session
+            #                     if 'mots_joueurs' not in session:
+            #                         session['mots_joueurs'] = [0] * nb_joueurs
+            #                     session['mots_joueurs'][i] = new_distribution[i]
+            #                     session.modified = True
             
             # Stocker en session
             session['nb_equipes'] = nb_equipes
@@ -353,10 +360,18 @@ def choix_mots_aleatoire():
         flash('Configuration de partie invalide. Veuillez recommencer.', 'error')
         return redirect(url_for('main.configurer_partie'))
 
-    # Initialiser le tableau des mots si nécessaire
+    # Ajuster la taille de mots_joueurs en fonction du nombre de joueurs actuel
+    current_nb_joueurs = session['nb_joueurs']
     if 'mots_joueurs' not in session:
-        session['mots_joueurs'] = [0] * session['nb_joueurs']
-        session.modified = True
+        session['mots_joueurs'] = [0] * current_nb_joueurs
+    elif len(session['mots_joueurs']) != current_nb_joueurs:
+        # Si le nombre de joueurs a changé, ajuster la liste
+        old_mots = session['mots_joueurs']
+        session['mots_joueurs'] = [0] * current_nb_joueurs
+        # Copier les anciennes valeurs si possible
+        for i in range(min(len(old_mots), current_nb_joueurs)):
+            session['mots_joueurs'][i] = old_mots[i]
+    session.modified = True
 
     # Initialiser le stockage temporaire si besoin
     if 'pending_words' not in session:
@@ -371,10 +386,12 @@ def choix_mots_aleatoire():
     except (ValueError, TypeError):
         flash('Configuration de partie invalide. Veuillez recommencer.', 'error')
         return redirect(url_for('main.configurer_partie'))
-
+    #print(session)
+    #print("bonjour", request.form)
     if request.method == 'POST':
         # Récupérer et nettoyer les noms des joueurs
         noms_joueurs = []
+        #print("bonjour", request.form())
         for i in range(session['nb_joueurs']):
             nom = request.form.get(f'joueur_{i}', '').strip()
             # Validation du nom
@@ -439,6 +456,8 @@ def choix_mots_aleatoire():
         # Si le nombre de joueurs a changé, ajuster la liste des noms
         current_noms = session['noms_joueurs']
         new_noms = [''] * session['nb_joueurs']
+        #print(new_noms)
+
         # Copier les noms existants jusqu'à la nouvelle taille
         for i in range(min(len(current_noms), session['nb_joueurs'])):
             new_noms[i] = current_noms[i]
@@ -538,6 +557,9 @@ def mots_joueur(player_index):
             session['pending_words'][str(player_index)] = new_mots
             if 'mots_joueurs' not in session:
                 session['mots_joueurs'] = [0] * session['nb_joueurs']
+            print(session)
+            print(player_index, len(new_mots), new_mots, str(player_index), session['mots_joueurs'])
+            # 4 1 ["on"] 4 
             session['mots_joueurs'][player_index] = len(new_mots)
             session.modified = True
             flash(f"Les mots ont été enregistrés temporairement pour {nom_defaut}", 'success')
@@ -727,4 +749,39 @@ def delete_player_words(player_index):
         
     except Exception as e:
         db.session.rollback()
+        return {'status': 'error', 'message': str(e)}, 500
+
+@bp.route('/save_advanced_settings', methods=['POST'])
+def save_advanced_settings():
+    try:
+        data = request.get_json()
+        
+        # Récupérer les paramètres
+        choix_equipe = data.get('choix_equipe')
+        nb_mots_total = int(data.get('nb_mots_total'))
+        duree_manche = int(data.get('duree_manche'))
+        mot_reserve = data.get('mot_reserve')
+        
+        # Validation des paramètres
+        if choix_equipe not in ['aleatoire', 'personnalise']:
+            raise BadRequest("Choix d'équipe invalide")
+        if not (20 <= nb_mots_total <= 80):
+            raise BadRequest("Le nombre de mots total doit être entre 20 et 80")
+        if not (20 <= duree_manche <= 60):
+            raise BadRequest("La durée de la manche doit être entre 20 et 60 secondes")
+        if mot_reserve not in ['oui', 'non']:
+            raise BadRequest("Choix de mot en réserve invalide")
+        
+        # Sauvegarder en session
+        session['choix_equipe'] = choix_equipe
+        session['nb_mots_total'] = nb_mots_total
+        session['duree_manche'] = duree_manche
+        session['mot_reserve'] = mot_reserve
+        session.modified = True
+        
+        return {'status': 'success'}, 200
+        
+    except (ValueError, BadRequest) as e:
+        return {'status': 'error', 'message': str(e)}, 400
+    except Exception as e:
         return {'status': 'error', 'message': str(e)}, 500 

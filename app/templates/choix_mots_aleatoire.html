@@ -175,7 +175,7 @@
 }
 
 .player-input-container::before {
-    content: "doublon";
+    content: attr(data-error-message);
     position: absolute;
     right: calc(80px + 3rem);
     top: 50%;
@@ -367,6 +367,15 @@ document.addEventListener('DOMContentLoaded', function() {
         container.appendChild(clearButton);
     });
 
+    // Vérifier les noms dès le chargement
+    inputs.forEach(input => {
+        if (input.value === '' || input.value === `Joueur ${Array.from(inputs).indexOf(input) + 1}`) {
+            input.parentElement.parentElement.classList.add('error');
+            input.parentElement.parentElement.setAttribute('data-error-message', 'nom requis');
+        }
+    });
+    checkDuplicateNames();
+
     function sanitizeInput(input) {
         // Supprimer les espaces au début et à la fin
         let value = input.value.trim();
@@ -393,6 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
         inputs.forEach(input => {
             input.classList.remove('error');
             input.parentElement.parentElement.classList.remove('error');
+            input.parentElement.parentElement.removeAttribute('data-error-message');
         });
 
         // Vérifier chaque nom
@@ -404,12 +414,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 hasEmptyNames = true;
                 inputs[index].classList.add('error');
                 inputs[index].parentElement.parentElement.classList.add('error');
+                inputs[index].parentElement.parentElement.setAttribute('data-error-message', 'nom requis');
                 return;
             }
             
             // Vérifier si ce nom apparaît ailleurs dans la liste
             const duplicateIndexes = names.reduce((acc, currentName, currentIndex) => {
-                // Ignorer les noms par défaut dans la comparaison
                 if (currentIndex !== index && 
                     currentName === name && 
                     currentName !== `Joueur ${currentIndex + 1}`) {
@@ -421,27 +431,19 @@ document.addEventListener('DOMContentLoaded', function() {
             // Si des doublons sont trouvés
             if (duplicateIndexes.length > 0) {
                 hasDuplicates = true;
-                // Marquer ce champ comme étant en erreur
                 inputs[index].classList.add('error');
                 inputs[index].parentElement.parentElement.classList.add('error');
+                inputs[index].parentElement.parentElement.setAttribute('data-error-message', 'doublon');
                 // Marquer aussi les autres champs avec le même nom
                 duplicateIndexes.forEach(dupIndex => {
                     inputs[dupIndex].classList.add('error');
                     inputs[dupIndex].parentElement.parentElement.classList.add('error');
+                    inputs[dupIndex].parentElement.parentElement.setAttribute('data-error-message', 'doublon');
                 });
             }
         });
 
-        // Si tous les noms sont par défaut, ne pas considérer comme des doublons
-        const allDefault = names.every((name, index) => name === `Joueur ${index + 1}`);
-        if (allDefault) {
-            hasDuplicates = false;
-            inputs.forEach(input => {
-                input.classList.remove('error');
-                input.parentElement.parentElement.classList.remove('error');
-            });
-        }
-
+        // Supprimer la vérification des noms par défaut
         startButton.disabled = hasDuplicates || hasEmptyNames || !checkAllWordsFilled();
         return !hasDuplicates && !hasEmptyNames;
     }
