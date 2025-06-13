@@ -4,6 +4,7 @@ from werkzeug.exceptions import BadRequest
 from app.models import db, Word, Player
 import random
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 INITIAL_WORDS = [
     # Habitat et Maison
@@ -275,9 +276,17 @@ def init_db():
     if Word.query.count() == 0:
         # Ajouter les mots initiaux
         for word_data in INITIAL_WORDS:
-            word = Word(**word_data)
-            db.session.add(word)
-        db.session.commit()
+            # Vérifier si le mot existe déjà
+            existing_word = Word.query.filter_by(word=word_data['word']).first()
+            if not existing_word:
+                word = Word(**word_data)
+                db.session.add(word)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            # Si un mot existe déjà, on continue avec les autres
+            pass
 
 @bp.route('/')
 def index():
@@ -677,6 +686,7 @@ def generate_random_word():
     if word:
         return {'word': word.word}, 200
     else:
+        # Si aucun mot n'est disponible, retourner une erreur
         return {'error': 'Aucun mot disponible'}, 404
 
 @bp.route('/reset_game', methods=['POST'])
