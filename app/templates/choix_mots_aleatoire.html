@@ -56,7 +56,7 @@
             {% endfor %}
         </div>
 
-        <button type="submit" class="game-button start-button">
+        <button type="button" class="game-button start-button" id="start-button" onclick="startGame()">
             Démarrer la partie
         </button>
     </form>
@@ -574,5 +574,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Vérifier l'état initial du bouton
     startButton.disabled = !checkAllWordsFilled() || !checkDuplicateNames();
 });
+
+function startGame() {
+    // Vérifier que tous les joueurs ont des mots
+    const allPlayersHaveWords = Array.from(document.querySelectorAll('.player-input-container')).every(container => {
+        const wordInputs = container.querySelectorAll('input[type="text"]');
+        return Array.from(wordInputs).every(input => input.value.trim() !== '');
+    });
+
+    if (!allPlayersHaveWords) {
+        alert('Veuillez remplir tous les mots pour chaque joueur avant de démarrer la partie.');
+        return;
+    }
+
+    // Rediriger vers la page de constitution des équipes
+    window.location.href = "{{ url_for('main.constituer_equipes') }}";
+}
 </script>
 {% endblock %} 

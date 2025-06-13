@@ -1,10 +1,12 @@
-from flask import render_template, request, session, redirect, url_for, flash
+from flask import render_template, request, session, redirect, url_for, flash, jsonify
 from app.routes import bp
 from werkzeug.exceptions import BadRequest
 from app.models import db, Word, Player
 import random
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+import json
+import os
 
 INITIAL_WORDS = [
     # Habitat et Maison
@@ -274,19 +276,33 @@ def init_db():
     """Initialise la base de données avec les mots par défaut."""
     # Vérifier si la base de données est vide
     if Word.query.count() == 0:
-        # Ajouter les mots initiaux
-        for word_data in INITIAL_WORDS:
-            # Vérifier si le mot existe déjà
-            existing_word = Word.query.filter_by(word=word_data['word']).first()
-            if not existing_word:
-                word = Word(**word_data)
-                db.session.add(word)
+        # Charger les mots depuis le fichier JSON
+        json_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'words.json')
         try:
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            # Si un mot existe déjà, on continue avec les autres
-            pass
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                words_data = data['words']
+                
+                # Ajouter les mots à la base de données
+                for word_data in words_data:
+                    # Vérifier si le mot existe déjà
+                    existing_word = Word.query.filter_by(word=word_data['word']).first()
+                    if not existing_word:
+                        word = Word(**word_data)
+                        db.session.add(word)
+                
+                try:
+                    db.session.commit()
+                except IntegrityError:
+                    db.session.rollback()
+                    # Si un mot existe déjà, on continue avec les autres
+                    pass
+        except FileNotFoundError:
+            print(f"Erreur : Le fichier {json_path} n'a pas été trouvé.")
+        except json.JSONDecodeError:
+            print(f"Erreur : Le fichier {json_path} n'est pas un JSON valide.")
+        except Exception as e:
+            print(f"Erreur lors de l'initialisation de la base de données : {str(e)}")
 
 @bp.route('/')
 def index():
@@ -395,12 +411,10 @@ def choix_mots_aleatoire():
     except (ValueError, TypeError):
         flash('Configuration de partie invalide. Veuillez recommencer.', 'error')
         return redirect(url_for('main.configurer_partie'))
-    #print(session)
-    #print("bonjour", request.form)
+
     if request.method == 'POST':
         # Récupérer et nettoyer les noms des joueurs
         noms_joueurs = []
-        #print("bonjour", request.form())
         for i in range(session['nb_joueurs']):
             nom = request.form.get(f'joueur_{i}', '').strip()
             # Validation du nom
@@ -465,13 +479,52 @@ def choix_mots_aleatoire():
         # Si le nombre de joueurs a changé, ajuster la liste des noms
         current_noms = session['noms_joueurs']
         new_noms = [''] * session['nb_joueurs']
-        #print(new_noms)
-
         # Copier les noms existants jusqu'à la nouvelle taille
         for i in range(min(len(current_noms), session['nb_joueurs'])):
             new_noms[i] = current_noms[i]
         session['noms_joueurs'] = new_noms
         session.modified = True
+
+    # Si choix_mots est "aleatoire", pré-remplir les mots pour chaque joueur
+    if session.get('choix_mots') == 'aleatoire':
+        game_session = session.get('game_session')
+        if not game_session:
+            game_session = str(datetime.utcnow().timestamp())
+            session['game_session'] = game_session
+            session.modified = True
+
+        # Récupérer tous les mots déjà utilisés
+        used_words = set()
+        players = Player.query.filter_by(game_session=game_session).all()
+        for player in players:
+            for word in player.words:
+                used_words.add(word.word)
+
+        # Pour chaque joueur, générer ses mots
+        mots_distribution = calculate_words_distribution(session['nb_joueurs'], session['nb_mots_total'])
+        for i in range(session['nb_joueurs']):
+            mots_requis = mots_distribution[i]
+            new_mots = []
+            attempts = 0
+            max_attempts = mots_requis * 2  # Limite de tentatives pour éviter une boucle infinie
+
+            while len(new_mots) < mots_requis and attempts < max_attempts:
+                word = Word.query.filter(
+                    Word.is_custom == False,
+                    ~Word.word.in_(used_words)
+                ).order_by(db.func.random()).first()
+
+                if word and word.word not in new_mots:
+                    new_mots.append(word.word)
+                    used_words.add(word.word)
+                attempts += 1
+
+            if new_mots:
+                session['pending_words'][str(i)] = new_mots
+                if 'mots_joueurs' not in session:
+                    session['mots_joueurs'] = [0] * session['nb_joueurs']
+                session['mots_joueurs'][i] = len(new_mots)
+                session.modified = True
     
     return render_template('choix_mots_aleatoire.html')
 
@@ -794,4 +847,43 @@ def save_advanced_settings():
     except (ValueError, BadRequest) as e:
         return {'status': 'error', 'message': str(e)}, 400
     except Exception as e:
-        return {'status': 'error', 'message': str(e)}, 500 
+        return {'status': 'error', 'message': str(e)}, 500
+
+@bp.route('/constituer_equipes', methods=['GET'])
+def constituer_equipes():
+    # Vérifier que les paramètres nécessaires sont en session
+    if not all(key in session for key in ['nb_equipes', 'nb_joueurs', 'noms_joueurs']):
+        flash('Veuillez d\'abord configurer la partie', 'error')
+        return redirect(url_for('main.configurer_partie'))
+    
+    return render_template('constituer_equipes.html')
+
+@bp.route('/start_game', methods=['POST'])
+def start_game():
+    try:
+        data = request.get_json()
+        teams = data.get('teams', {})
+        
+        # Vérifier que toutes les équipes ont le bon nombre de joueurs
+        nb_equipes = session.get('nb_equipes', 2)
+        nb_joueurs = session.get('nb_joueurs', 4)
+        joueurs_par_equipe = nb_joueurs // nb_equipes
+        
+        if len(teams) != nb_equipes:
+            return jsonify({'status': 'error', 'message': 'Nombre d\'équipes incorrect'})
+        
+        for equipe in teams.values():
+            if len(equipe) != joueurs_par_equipe:
+                return jsonify({'status': 'error', 'message': 'Nombre de joueurs incorrect dans une équipe'})
+        
+        # Sauvegarder les équipes en session
+        session['equipes'] = teams
+        
+        # Rediriger vers la page de jeu
+        return jsonify({
+            'status': 'success',
+            'redirect': url_for('main.jouer_partie')
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}) 

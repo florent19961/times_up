@@ -1,0 +1,72 @@
+{
+    "words": [
+        {
+            "word": "maison",
+            "difficulty": 1,
+            "category": "habitat"
+        },
+        {
+            "word": "appartement",
+            "difficulty": 1,
+            "category": "habitat"
+        },
+        {
+            "word": "immeuble",
+            "difficulty": 1,
+            "category": "habitat"
+        },
+        {
+            "word": "château",
+            "difficulty": 2,
+            "category": "habitat"
+        },
+        {
+            "word": "cabane",
+            "difficulty": 1,
+            "category": "habitat"
+        },
+        {
+            "word": "tente",
+            "difficulty": 1,
+            "category": "habitat"
+        },
+        {
+            "word": "igloo",
+            "difficulty": 2,
+            "category": "habitat"
+        },
+        {
+            "word": "gratte-ciel",
+            "difficulty": 2,
+            "category": "habitat"
+        },
+        {
+            "word": "fenêtre",
+            "difficulty": 1,
+            "category": "habitat"
+        },
+        {
+            "word": "porte",
+            "difficulty": 1,
+            "category": "habitat"
+        }
+    ],
+    "categories": {
+        "habitat": "Habitat et Maison",
+        "mobilier": "Mobilier",
+        "transport": "Transport",
+        "technologie": "Technologie",
+        "nature": "Nature",
+        "météo": "Météo",
+        "animaux": "Animaux",
+        "nourriture": "Nourriture",
+        "boissons": "Boissons",
+        "sports": "Sports",
+        "musique": "Instruments de musique"
+    },
+    "difficulties": {
+        "1": "Facile",
+        "2": "Moyen",
+        "3": "Difficile"
+    }
+} 

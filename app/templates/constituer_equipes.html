@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+
+{% block title %}Constituer les équipes{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="{{ url_for('main.choix_mots_aleatoire') }}" class="back-button" title="Retour">
+        <span class="back-arrow">←</span>
+    </a>
+
+    <div class="header-container">
+        <h1 class="game-title">Constituer les équipes</h1>
+        <button type="button" class="reset-button" id="reset-teams" title="Remettre tous les joueurs dans le pool">
+            <span class="reset-icon">↺</span>
+        </button>
+    </div>
+
+    <div class="teams-container">
+        {% for equipe in range(session.get('nb_equipes', 2)) %}
+        <div class="team-box">
+            <h2 class="team-title" data-team="{{ equipe }}" contenteditable="true" spellcheck="false">Équipe {{ equipe + 1 }}</h2>
+            <div class="team-players" id="team-{{ equipe }}">
+                <!-- Les joueurs seront ajoutés ici dynamiquement -->
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="available-players">
+        <div class="section-header">
+            <h2 class="section-title">Joueurs disponibles</h2>
+            <button type="button" class="random-button" id="random-distribute" title="Répartir aléatoirement les joueurs restants">
+                <span class="random-icon">🎲</span>
+            </button>
+        </div>
+        <div class="players-list" id="available-players">
+            {% for joueur in session.get('noms_joueurs', []) %}
+            <div class="player-item" draggable="true" data-player="{{ joueur }}">
+                {{ joueur }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <button type="button" class="game-button start-game-button" id="start-game" disabled>
+        Démarrer la partie
+    </button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const availablePlayers = document.getElementById('available-players');
+    const teamContainers = document.querySelectorAll('.team-players');
+    const startGameButton = document.getElementById('start-game');
+    const nbEquipes = {{ session.get('nb_equipes', 2) }};
+    const nbJoueurs = {{ session.get('nb_joueurs', 4) }};
+    const joueursParEquipe = Math.floor(nbJoueurs / nbEquipes);
+
+    // Fonction pour mettre à jour l'état du bouton de démarrage
+    function updateStartButton() {
+        const allTeams = document.querySelectorAll('.team-players');
+        const allTeamsHaveEnoughPlayers = Array.from(allTeams).every(team => 
+            team.children.length >= 2
+        );
+        startGameButton.disabled = !allTeamsHaveEnoughPlayers;
+    }
+
+    // Fonction pour créer un élément joueur
+    function createPlayerElement(playerName) {
+        const playerElement = document.createElement('div');
+        playerElement.className = 'player-item';
+        playerElement.textContent = playerName;
+        playerElement.draggable = true;
+        playerElement.dataset.player = playerName;
+        
+        // Ajouter les événements de drag and drop
+        playerElement.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', playerName);
+            playerElement.classList.add('dragging');
+        });
+        
+        playerElement.addEventListener('dragend', () => {
+            playerElement.classList.remove('dragging');
+        });
+
+        // Ajouter la possibilité de retirer le joueur
+        playerElement.addEventListener('click', () => {
+            const availablePlayer = createPlayerElement(playerName);
+            availablePlayers.appendChild(availablePlayer);
+            playerElement.remove();
+            updateStartButton();
+        });
+
+        return playerElement;
+    }
+
+    // Gestion du drag and drop
+    document.querySelectorAll('.player-item').forEach(player => {
+        player.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', player.dataset.player);
+            player.classList.add('dragging');
+        });
+
+        player.addEventListener('dragend', () => {
+            player.classList.remove('dragging');
+        });
+    });
+
+    // Gestion du drag and drop pour le pool de joueurs disponibles
+    availablePlayers.addEventListener('dragover', e => {
+        e.preventDefault();
+        availablePlayers.classList.add('drag-over');
+    });
+
+    availablePlayers.addEventListener('dragleave', () => {
+        availablePlayers.classList.remove('drag-over');
+    });
+
+    availablePlayers.addEventListener('drop', e => {
+        e.preventDefault();
+        availablePlayers.classList.remove('drag-over');
+        
+        const playerName = e.dataTransfer.getData('text/plain');
+        const playerElement = document.querySelector(`[data-player="${playerName}"]`);
+        
+        if (playerElement && playerElement.parentElement !== availablePlayers) {
+            const newPlayer = createPlayerElement(playerName);
+            availablePlayers.appendChild(newPlayer);
+            playerElement.remove();
+            updateStartButton();
+        }
+    });
+
+    teamContainers.forEach(team => {
+        team.addEventListener('dragover', e => {
+            e.preventDefault();
+            team.classList.add('drag-over');
+        });
+
+        team.addEventListener('dragleave', () => {
+            team.classList.remove('drag-over');
+        });
+
+        team.addEventListener('drop', e => {
+            e.preventDefault();
+            team.classList.remove('drag-over');
+            
+            const playerName = e.dataTransfer.getData('text/plain');
+            const playerElement = document.querySelector(`[data-player="${playerName}"]`);
+            
+            if (playerElement) {
+                const newPlayer = createPlayerElement(playerName);
+                team.appendChild(newPlayer);
+                playerElement.remove();
+                updateStartButton();
+            }
+        });
+    });
+
+    // Fonction pour répartir aléatoirement les joueurs
+    function distributePlayersRandomly() {
+        const availablePlayers = document.getElementById('available-players');
+        const teamContainers = document.querySelectorAll('.team-players');
+        const players = Array.from(availablePlayers.children);
+        
+        if (players.length === 0) return;
+
+        // Trier les équipes par nombre de joueurs (croissant)
+        const sortedTeams = Array.from(teamContainers).sort((a, b) => 
+            a.children.length - b.children.length
+        );
+
+        // Mélanger les joueurs disponibles
+        for (let i = players.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [players[i], players[j]] = [players[j], players[i]];
+        }
+
+        // Répartir les joueurs en commençant par l'équipe avec le moins de joueurs
+        players.forEach(player => {
+            const teamWithLeastPlayers = sortedTeams[0];
+            const newPlayer = createPlayerElement(player.dataset.player);
+            teamWithLeastPlayers.appendChild(newPlayer);
+            player.remove();
+            
+            // Re-trier les équipes après chaque ajout
+            sortedTeams.sort((a, b) => a.children.length - b.children.length);
+        });
+
+        updateStartButton();
+    }
+
+    // Ajouter l'événement au bouton de répartition aléatoire
+    document.getElementById('random-distribute').addEventListener('click', distributePlayersRandomly);
+
+    // Fonction pour réinitialiser les équipes
+    function resetTeams() {
+        const availablePlayers = document.getElementById('available-players');
+        const teamContainers = document.querySelectorAll('.team-players');
+        
+        // Récupérer tous les joueurs des équipes
+        teamContainers.forEach(team => {
+            const players = Array.from(team.children);
+            players.forEach(player => {
+                const newPlayer = createPlayerElement(player.dataset.player);
+                availablePlayers.appendChild(newPlayer);
+                player.remove();
+            });
+        });
+
+        updateStartButton();
+    }
+
+    // Ajouter l'événement au bouton de réinitialisation
+    document.getElementById('reset-teams').addEventListener('click', resetTeams);
+
+    // Gestion des noms d'équipes
+    document.querySelectorAll('.team-title').forEach(title => {
+        // Empêcher la propagation du clic pour éviter le drag and drop
+        title.addEventListener('click', e => {
+            e.stopPropagation();
+        });
+
+        // Sauvegarder le nom de l'équipe quand on appuie sur Entrée
+        title.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                title.blur();
+            }
+        });
+
+        // Empêcher les sauts de ligne
+        title.addEventListener('keypress', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+            }
+        });
+
+        // Limiter la longueur du nom
+        title.addEventListener('input', e => {
+            if (e.target.textContent.length > 20) {
+                e.target.textContent = e.target.textContent.slice(0, 20);
+            }
+        });
+    });
+
+    // Modifier la fonction de démarrage pour inclure les noms d'équipes
+    startGameButton.addEventListener('click', function() {
+        const teams = {};
+        document.querySelectorAll('.team-players').forEach((team, index) => {
+            const teamName = document.querySelector(`.team-title[data-team="${index}"]`).textContent;
+            teams[`equipe_${index + 1}`] = {
+                name: teamName,
+                players: Array.from(team.children).map(player => player.textContent)
+            };
+        });
+
+        fetch('{{ url_for("main.start_game") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ teams: teams })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = data.redirect;
+            } else {
+                alert('Une erreur est survenue lors du démarrage de la partie.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Une erreur est survenue lors du démarrage de la partie.');
+        });
+    });
+
+    // Initialiser l'état du bouton
+    updateStartButton();
+});
+</script>
+
+<style>
+.container {
+    max-width: 95%;
+    margin: 0 auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.teams-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+}
+
+.teams-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.teams-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.teams-container::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.team-box {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 1.2rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 300px;
+    flex: 0 0 auto;
+}
+
+.team-title {
+    font-family: 'Bangers', cursive;
+    font-size: 1.8rem;
+    color: white;
+    text-shadow: 2px 2px 0 #FF6B6B;
+    margin-bottom: 0.8rem;
+    text-align: center;
+    cursor: text;
+    outline: none;
+    padding: 0.2rem 0.5rem;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.team-title:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.team-title:focus {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.3);
+}
+
+.team-players {
+    min-height: 120px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 0.8rem;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.team-players.drag-over {
+    border-color: var(--primary-color);
+    background: rgba(255, 107, 107, 0.1);
+}
+
+.available-players {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    max-width: 100%;
+}
+
+.section-title {
+    font-family: 'Bangers', cursive;
+    font-size: 1.8rem;
+    color: white;
+    text-shadow: 2px 2px 0 #FF6B6B;
+    margin-bottom: 0.8rem;
+    text-align: center;
+}
+
+.players-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    justify-content: center;
+    min-height: 80px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 0.8rem;
+    transition: all 0.3s ease;
+}
+
+.players-list.drag-over {
+    border-color: var(--primary-color);
+    background: rgba(255, 107, 107, 0.1);
+}
+
+.player-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.6rem 1.2rem;
+    border-radius: 50px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.player-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.player-item::after {
+    content: '×';
+    position: absolute;
+    right: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.player-item:hover::after {
+    opacity: 1;
+}
+
+.player-item.dragging {
+    opacity: 0.5;
+}
+
+.start-game-button {
+    background: linear-gradient(45deg, #FF6B6B, #FF8E8E);
+    color: white;
+    width: 100%;
+    max-width: 250px;
+    margin: 1.5rem auto;
+    display: block;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+    padding: 0.8rem;
+    font-size: 1.1rem;
+}
+
+.start-game-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.start-game-button:not(:disabled):hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0.8rem;
+    }
+
+    .teams-container {
+        gap: 0.5rem;
+    }
+
+    .team-box {
+        min-width: 250px;
+        padding: 1rem;
+    }
+
+    .team-title, .section-title {
+        font-size: 1.5rem;
+    }
+
+    .player-item {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .start-game-button {
+        max-width: 200px;
+        padding: 0.7rem;
+        font-size: 1rem;
+    }
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.random-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.random-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(15deg);
+}
+
+.random-icon {
+    font-size: 1.2rem;
+}
+
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    position: relative;
+    padding-right: 50px;
+}
+
+.reset-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.reset-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(180deg);
+}
+
+.reset-icon {
+    font-size: 1.2rem;
+    color: white;
+}
+</style>
+{% endblock %} 
