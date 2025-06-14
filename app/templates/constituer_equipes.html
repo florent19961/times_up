@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Constituer les équipes{% endblock %}
+{% block title %}Constitution des équipes{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -9,34 +9,39 @@
     </a>
 
     <div class="header-container">
-        <h1 class="game-title">Constituer les équipes</h1>
+        <h1 class="game-title">Constitution des équipes</h1>
         <button type="button" class="reset-button" id="reset-teams" title="Remettre tous les joueurs dans le pool">
             <span class="reset-icon">↺</span>
         </button>
     </div>
 
-    <div class="teams-container">
-        {% for equipe in range(session.get('nb_equipes', 2)) %}
-        <div class="team-box">
-            <h2 class="team-title" data-team="{{ equipe }}" contenteditable="true" spellcheck="false">Équipe {{ equipe + 1 }}</h2>
-            <div class="team-players" id="team-{{ equipe }}">
-                <!-- Les joueurs seront ajoutés ici dynamiquement -->
+    <div class="main-content">
+        <div class="available-players">
+            <div class="section-header">
+                <h2 class="section-title">Liste des joueurs</h2>
+                <button type="button" class="random-button" id="random-distribute" title="Répartir aléatoirement les joueurs restants">
+                    <span class="random-icon">🎲</span>
+                </button>
+            </div>
+            <div class="players-list" id="available-players">
+                {% for joueur in session.get('noms_joueurs', []) %}
+                <div class="player-item" draggable="true" data-player="{{ joueur }}">
+                    {{ joueur }}
+                </div>
+                {% endfor %}
             </div>
         </div>
-        {% endfor %}
-    </div>
 
-    <div class="available-players">
-        <div class="section-header">
-            <h2 class="section-title">Joueurs disponibles</h2>
-            <button type="button" class="random-button" id="random-distribute" title="Répartir aléatoirement les joueurs restants">
-                <span class="random-icon">🎲</span>
-            </button>
-        </div>
-        <div class="players-list" id="available-players">
-            {% for joueur in session.get('noms_joueurs', []) %}
-            <div class="player-item" draggable="true" data-player="{{ joueur }}">
-                {{ joueur }}
+        <div class="teams-container">
+            {% for equipe in range(session.get('nb_equipes', 2)) %}
+            <div class="team-box">
+                <div class="team-title-container">
+                    <h2 class="team-title" data-team="{{ equipe }}" contenteditable="true" spellcheck="false">Équipe {{ equipe + 1 }}</h2>
+                    <span class="edit-icon">✎</span>
+                </div>
+                <div class="team-players" id="team-{{ equipe }}">
+                    <!-- Les joueurs seront ajoutés ici dynamiquement -->
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -56,13 +61,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const nbJoueurs = {{ session.get('nb_joueurs', 4) }};
     const joueursParEquipe = Math.floor(nbJoueurs / nbEquipes);
 
+    // Ajuster la marge de la liste des joueurs en fonction du nombre d'équipes
+    if (nbEquipes === 2) {
+        document.querySelector('.available-players').style.marginLeft = '12.5rem';
+    }
+
     // Fonction pour mettre à jour l'état du bouton de démarrage
     function updateStartButton() {
         const allTeams = document.querySelectorAll('.team-players');
+        const availablePlayers = document.getElementById('available-players');
         const allTeamsHaveEnoughPlayers = Array.from(allTeams).every(team => 
             team.children.length >= 2
         );
-        startGameButton.disabled = !allTeamsHaveEnoughPlayers;
+        const noPlayersLeft = availablePlayers.children.length === 0;
+        startGameButton.disabled = !(allTeamsHaveEnoughPlayers && noPlayersLeft);
     }
 
     // Fonction pour créer un élément joueur
@@ -215,16 +227,31 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('reset-teams').addEventListener('click', resetTeams);
 
     // Gestion des noms d'équipes
-    document.querySelectorAll('.team-title').forEach(title => {
+    document.querySelectorAll('.team-title-container').forEach(container => {
+        const title = container.querySelector('.team-title');
+        const editIcon = container.querySelector('.edit-icon');
+
         // Empêcher la propagation du clic pour éviter le drag and drop
-        title.addEventListener('click', e => {
+        container.addEventListener('click', e => {
             e.stopPropagation();
+        });
+
+        // Gérer le clic sur l'icône de crayon
+        editIcon.addEventListener('click', () => {
+            title.focus();
+            // Sélectionner tout le texte
+            const range = document.createRange();
+            range.selectNodeContents(title);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
         });
 
         // Sauvegarder le nom de l'équipe quand on appuie sur Entrée
         title.addEventListener('keydown', e => {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                title.textContent = title.textContent.trim();
                 title.blur();
             }
         });
@@ -236,11 +263,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Limiter la longueur du nom
+        // Limiter la longueur du nom sans affecter la position du curseur
         title.addEventListener('input', e => {
-            if (e.target.textContent.length > 20) {
-                e.target.textContent = e.target.textContent.slice(0, 20);
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            const cursorPosition = range.startOffset;
+            
+            let content = e.target.textContent;
+            if (content.length > 30) {
+                content = content.slice(0, 30);
+                e.target.textContent = content;
+                
+                // Restaurer la position du curseur
+                range.setStart(e.target.firstChild, Math.min(cursorPosition, content.length));
+                range.setEnd(e.target.firstChild, Math.min(cursorPosition, content.length));
+                selection.removeAllRanges();
+                selection.addRange(range);
             }
+        });
+
+        // Appliquer le trim lors de la perte du focus
+        title.addEventListener('blur', e => {
+            e.target.textContent = e.target.textContent.trim();
         });
     });
 
@@ -282,6 +326,14 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+:root {
+    --player-item-width: 180px;
+    --player-item-height: 79px;
+    --team-box-width: 310px;
+    --team-box-height: calc(100vh - 350px);
+    --team-players-gap: 0.8rem;
+}
+
 .container {
     max-width: 95%;
     margin: 0 auto;
@@ -291,17 +343,41 @@ document.addEventListener('DOMContentLoaded', function() {
     align-items: center;
 }
 
+.main-content {
+    display: flex;
+    gap: 4rem;
+    width: 100%;
+    margin-bottom: 1.5rem;
+}
+
+.available-players {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 1.2rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: var(--team-box-width);
+    height: var(--team-box-height);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    margin-left: 4rem;
+    transition: margin-left;
+}
+
 .teams-container {
     display: flex;
+    flex-direction: row;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    flex-grow: 1;
     overflow-x: auto;
+    overflow-y: hidden;
+    max-height: calc(100vh - 250px);
     padding-bottom: 1rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
+    min-width: 0;
     width: 100%;
-    max-width: 100%;
 }
 
 .teams-container::-webkit-scrollbar {
@@ -323,58 +399,48 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 1.2rem;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    min-width: 300px;
-    flex: 0 0 auto;
+    width: var(--team-box-width);
+    height: var(--team-box-height);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
 }
 
-.team-title {
-    font-family: 'Bangers', cursive;
-    font-size: 1.8rem;
-    color: white;
-    text-shadow: 2px 2px 0 #FF6B6B;
-    margin-bottom: 0.8rem;
-    text-align: center;
-    cursor: text;
-    outline: none;
-    padding: 0.2rem 0.5rem;
-    border-radius: 5px;
-    transition: all 0.3s ease;
-}
-
-.team-title:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.team-title:focus {
-    background: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.3);
-}
-
-.team-players {
-    min-height: 120px;
+.players-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--team-players-gap);
+    min-height: 80px;
     border: 2px dashed rgba(255, 255, 255, 0.2);
     border-radius: 10px;
     padding: 0.8rem;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.team-players.drag-over {
-    border-color: var(--primary-color);
-    background: rgba(255, 107, 107, 0.1);
-}
-
-.available-players {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    padding: 1.2rem;
-    margin-bottom: 1.5rem;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+    align-items: center;
     width: 100%;
-    max-width: 100%;
+    flex: 1;
+}
+
+.players-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.players-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.players-list::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    position: relative;
+    width: 100%;
+    padding-right: 10px;
 }
 
 .section-title {
@@ -382,25 +448,11 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 1.8rem;
     color: white;
     text-shadow: 2px 2px 0 #FF6B6B;
-    margin-bottom: 0.8rem;
+    margin: 0;
     text-align: center;
-}
-
-.players-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8rem;
-    justify-content: center;
-    min-height: 80px;
-    border: 2px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 0.8rem;
-    transition: all 0.3s ease;
-}
-
-.players-list.drag-over {
-    border-color: var(--primary-color);
-    background: rgba(255, 107, 107, 0.1);
+    width: 100%;
+    padding: 0.2rem 0.5rem;
+    line-height: 1.2;
 }
 
 .player-item {
@@ -415,6 +467,12 @@ document.addEventListener('DOMContentLoaded', function() {
     position: relative;
     font-size: 0.95rem;
     margin: 0;
+    width: var(--player-item-width);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
 }
 
 .player-item:hover {
@@ -447,7 +505,7 @@ document.addEventListener('DOMContentLoaded', function() {
     max-width: 250px;
     margin: 1.5rem auto;
     display: block;
-    opacity: 0.7;
+    opacity: 1;
     transition: all 0.3s ease;
     padding: 0.8rem;
     font-size: 1.1rem;
@@ -465,17 +523,25 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 @media (max-width: 768px) {
-    .container {
-        padding: 0.8rem;
+    .main-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .available-players {
+        width: 100%;
     }
 
     .teams-container {
-        gap: 0.5rem;
+        flex-direction: column;
+        align-items: center;
     }
 
     .team-box {
-        min-width: 250px;
-        padding: 1rem;
+        width: 100%;
+        max-width: var(--team-box-width);
+        height: auto;
+        min-height: var(--team-box-height);
     }
 
     .team-title, .section-title {
@@ -494,14 +560,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 
-.section-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
 .random-button {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -514,11 +572,14 @@ document.addEventListener('DOMContentLoaded', function() {
     cursor: pointer;
     transition: all 0.3s ease;
     padding: 0;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .random-button:hover {
     background: rgba(255, 255, 255, 0.2);
-    transform: rotate(15deg);
 }
 
 .random-icon {
@@ -532,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function() {
     gap: 1rem;
     margin-bottom: 2rem;
     position: relative;
-    padding-right: 50px;
+    padding-right: 80px;
 }
 
 .reset-button {
@@ -555,12 +616,80 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .reset-button:hover {
     background: rgba(255, 255, 255, 0.2);
-    transform: rotate(180deg);
 }
 
 .reset-icon {
     font-size: 1.2rem;
     color: white;
+}
+
+.team-title-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+    position: relative;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.team-title {
+    font-family: 'Bangers', cursive;
+    font-size: 1.8rem;
+    color: white;
+    text-shadow: 2px 2px 0 #FF6B6B;
+    text-align: center;
+    cursor: text;
+    outline: none;
+    padding: 0.2rem 0.5rem;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    line-height: 1.2;
+    margin: 0;
+    width: 100%;
+}
+
+.edit-icon {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 50%;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.edit-icon:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.team-players {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--team-players-gap);
+    align-items: center;
+    width: 100%;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 80px;
+}
+
+.team-players.drag-over {
+    border-color: var(--primary-color);
+    background: rgba(255, 107, 107, 0.1);
 }
 </style>
 {% endblock %} 
